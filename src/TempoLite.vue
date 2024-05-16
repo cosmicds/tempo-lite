@@ -260,6 +260,7 @@ import fieldOfRegard from "./assets/TEMPO_FOR.json";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 
+
 type SheetType = "text" | "video" | null;
 type Timeout = ReturnType<typeof setTimeout>;
 
@@ -268,7 +269,9 @@ interface TimezoneInfo {
   name: string;
 }
 
-const timestamps = [
+import earthdataTimestamps from "./timestamps";
+
+const fosterTimestamps = [
   1698838920000,
   1698841320000,
   1698843720000,
@@ -314,6 +317,12 @@ const timestamps = [
   1711665840000,
   1711668240000,
 ];
+
+// combine the timestamps from the two sources
+const timestamps = earthdataTimestamps.concat(fosterTimestamps);
+// sort the timestamps
+timestamps.sort();
+
 
 interface LocationOfInterest {
   latlng: L.LatLngExpression;
@@ -380,13 +389,14 @@ export default defineComponent({
         { tz: 'US/Arizona', name: 'Mountain Standard' },
         { tz: 'US/Pacific', name: 'Pacific Daylight' },
         { tz: 'US/Alaska', name: 'Alaska Daylight' },
+        { tz: 'UTC', name: 'UTC' },
       ] as TimezoneInfo[],
       selectedTimezone: "US/Eastern",
 
       timestep: 0,
       timeIndex: 0,
       minIndex: 0,
-      maxIndex: 14,
+      maxIndex: timestamps.length - 1,
       timeValues: [...Array(timestamps.length).keys()],
       playing: false,
       imageOverlay: new L.ImageOverlay("", novDecBounds, {
@@ -394,6 +404,8 @@ export default defineComponent({
         interactive: false,
       }),
       timestamps,
+      earthdataTimestamps,
+      fosterTimestamps,
 
       searchOpen: true,
       searchErrorMessage: null as string | null,
@@ -516,7 +528,17 @@ export default defineComponent({
       return `${this.date.getUTCMonth()+1}/${date.getUTCDate()}/${date.getUTCFullYear()} ${hourValue}:${date.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
     },
     imageUrl(): string {
-      return `https://tempo-demo-images.s3.amazonaws.com/tempo_${this.date.getUTCFullYear()}-${(this.date.getUTCMonth()+1).toString().padStart(2, '0')}-${this.date.getUTCDate().toString().padStart(2, '0')}T${this.date.getUTCHours()}h${this.date.getUTCMinutes().toString().padStart(2, '0')}m.png`;
+      if (this.fosterTimestamps.includes(this.timestamp)) {
+        return `https://tempo-demo-images.s3.amazonaws.com/tempo_${this.date.getUTCFullYear()}-${(this.date.getUTCMonth()+1).toString().padStart(2, '0')}-${this.date.getUTCDate().toString().padStart(2, '0')}T${this.date.getUTCHours()}h${this.date.getUTCMinutes().toString().padStart(2, '0')}m.png`;
+      }
+      
+      if (this.earthdataTimestamps.includes(this.timestamp)) {
+        const fname = `tempo_${this.date.getUTCFullYear()}-${(this.date.getUTCMonth()+1).toString().padStart(2, '0')}-${this.date.getUTCDate().toString().padStart(2, '0')}T${this.date.getUTCHours()}h${this.date.getUTCMinutes().toString().padStart(2, '0')}m.png`;
+        const url = 'https://johnarban.github.io/wwt_interactives/images/tempo/';
+        return url + fname;
+      }
+    
+      return "";
     },
   },
 
@@ -617,8 +639,10 @@ export default defineComponent({
     },
     radio(value: number) {
       const minIndex = 15 * value;
-      this.minIndex = minIndex;
-      this.maxIndex = Math.min(15 * (value + 1) - 1, this.timestamps.length - 1);
+      // this.minIndex = minIndex;
+      // this.maxIndex = Math.min(15 * (value + 1) - 1, this.timestamps.length - 1);
+      this.minIndex = 0;
+      this.maxIndex = this.timestamps.length - 1;
       this.timeIndex = minIndex;
       const bounds = value < 2 ? this.novDecBounds : this.marchBounds;
       this.imageOverlay.setBounds(bounds);
