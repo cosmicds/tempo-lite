@@ -379,6 +379,7 @@ export default defineComponent({
         new L.LatLng(14.01, -167.99),
         new L.LatLng(72.99, -13.01)
       ),
+      bounds: novDecBounds.toBBoxString().split(",").map(parseFloat),
       fieldOfRegardLayer,
       locationsOfInterest,
 
@@ -540,6 +541,23 @@ export default defineComponent({
     
       return "";
     },
+    
+    newBounds() {
+      return new L.LatLngBounds(
+        new L.LatLng(this.bounds[1], this.bounds[0]),
+        new L.LatLng(this.bounds[3], this.bounds[2])
+      );
+    },
+    
+    imageBounds() {
+      if (this.date.getUTCFullYear() === 2023 && (this.date.getUTCMonth() === 10 || this.date.getUTCMonth() === 11)) {
+        return this.novDecBounds;
+      } else if (this.date.getUTCFullYear() === 2024 && this.date.getUTCMonth() === 2) {
+        return this.marchBounds;
+      } else {
+        return this.newBounds;
+      }
+    }
   },
 
   methods: {
@@ -616,7 +634,10 @@ export default defineComponent({
       if (this.playInterval) {
         clearInterval(this.playInterval);
       }
-    }
+    },
+    updateBounds() {
+      this.imageOverlay.setBounds(this.imageBounds);
+    },
   },
 
   watch: {
@@ -628,8 +649,11 @@ export default defineComponent({
       }
     },
     imageUrl(url: string) {
+      this.updateBounds();
       this.imageOverlay.setUrl(url);
     },
+    
+    
     showFieldOfRegard (show: boolean) {
       if (show) {
         this.fieldOfRegardLayer.addTo(this.map as Map);
@@ -637,6 +661,7 @@ export default defineComponent({
         this.map.removeLayer(this.fieldOfRegardLayer as L.Layer);
       }
     },
+    
     radio(value: number) {
       const minIndex = 15 * value;
       // this.minIndex = minIndex;
@@ -644,10 +669,10 @@ export default defineComponent({
       this.minIndex = 0;
       this.maxIndex = this.timestamps.length - 1;
       this.timeIndex = minIndex;
-      const bounds = value < 2 ? this.novDecBounds : this.marchBounds;
-      this.imageOverlay.setBounds(bounds);
       this.sublocationRadio = null;
     },
+    
+    
     sublocationRadio(value: number | null) {
       if (value !== null) {
         const loi = this.locationsOfInterest[this.radio][value];
@@ -1125,6 +1150,10 @@ video {
 
 .v-radio-group .v-input__details {
   display: none;
+}
+
+.leaflet-image-layer {
+  border: 1px solid blue;
 }
 
 </style>
