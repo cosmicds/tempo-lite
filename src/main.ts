@@ -9,6 +9,7 @@ import InfoButton from "./InfoButton.vue";
 import vuetify from "../plugins/vuetify";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { FocusTrap } from "focus-trap-vue";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faBookOpen,
@@ -71,6 +72,7 @@ createApp(TempoLite, {})
   .component('info-button', InfoButton)
   .component('colorbar-horizontal', ColorBarHorizontal)
   .component('date-picker', VueDatePicker)
+  .component('focus-trap', FocusTrap)
 
   // Mount
   .mount("#app");
