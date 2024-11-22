@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Vue, { createApp } from "vue";
 
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
@@ -7,6 +8,7 @@ import Colorbar from './ColorBar.vue';
 import ColorBarHorizontal from "./ColorBarHorizontal.vue";
 import InfoButton from "./InfoButton.vue";
 import vuetify from "../plugins/vuetify";
+import SnackbarAlert from "./SnackbarAlert.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -71,6 +73,7 @@ createApp(TempoLite, {})
   .component('info-button', InfoButton)
   .component('colorbar-horizontal', ColorBarHorizontal)
   .component('date-picker', VueDatePicker)
+  .component('snackbar-alert', SnackbarAlert)
 
   // Mount
   .mount("#app");

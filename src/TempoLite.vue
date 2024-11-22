@@ -127,6 +127,19 @@
 
       <h1 id="title">What is in the Air You Breathe?</h1>
       </div>
+      <snackbar-alert>
+        <ul>
+          <li> Images from Nov, 19<sup>th</sup> onward are created 
+            using the average, rather than the nearest pixel value 
+            when reprojecting. 
+          </li>
+        </ul>
+        <!-- <template v-slot:activator="{ onClick, id }">
+          <v-btn :id="id" @click="onClick" color="primary">
+            Custom Activator
+          </v-btn>
+        </template> -->
+      </snackbar-alert>
       <div id="where" class="big-label">where</div>
       <div id="map-container">
         <colorbar-horizontal
@@ -2210,5 +2223,19 @@ button:focus-visible,
   image-rendering: crisp-edges;               /* CSS4 Proposed  */
   image-rendering: pixelated;                 /* CSS4 Proposed  */
   -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
+}
+
+.cds-snackbar-alert {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  pointer-events: auto;
+  z-index: 999;
+}
+
+@media (max-width: 750px) {
+  .cds-snackbar-alert {
+    top: -1rem;
+  }
 }
 </style>
