@@ -544,7 +544,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import L, { Map } from "leaflet";
+import L, { LatLngExpression, Map } from "leaflet";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
 import  { cividis } from "./cividis";
@@ -645,6 +645,10 @@ const urlParams = new URLSearchParams(window.location.search);
 const hideIntro = urlParams.get("hideintro") === "true";
 const WINDOW_DONTSHOWINTRO = hideIntro ? true: window.localStorage.getItem("dontShowIntro") === 'true';
 
+const initLat = parseFloat(urlParams.get("lat") || '40.044');
+const initLon = parseFloat(urlParams.get("lon") || '-98.789');
+const initZoom = parseFloat(urlParams.get("z") || '4');
+const initTime = urlParams.get("t");
 
 function zpad(n: number, width: number = 2, character: string = "0"): string {
   return n.toString().padStart(width, character);
@@ -768,6 +772,11 @@ export default defineComponent({
 
     const opacity = 0.9;
     return {
+      initState: {
+        loc: [initLat, initLon] as LatLngExpression,
+        zoom: initZoom,
+        t: initTime ? +initTime : null
+      },
       showSplashScreen,
       sheet: null as SheetType,
       layersLoaded: false,
@@ -825,7 +834,8 @@ export default defineComponent({
       timestamps,
       erdTimestamps,
       newTimestamps,
-      fosterTimestamps,      
+      fosterTimestamps,    
+      timestampsLoaded: false,  
       preload: true,
       
       singleDateSelected: new Date(),
@@ -853,12 +863,12 @@ export default defineComponent({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-    this.updateTimestamps();
+    this.updateTimestamps().then(() => {this.timestampsLoaded = true;});
   },
 
   mounted() {
     this.showSplashScreen = false;
-    this.map = L.map("map", { zoomControl: false }).setView([40.044, -98.789], 4, {
+    this.map = L.map("map", { zoomControl: false }).setView(this.initState.loc, this.initState.zoom, {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       crs: L.CRS.EPSG4326
@@ -903,7 +913,7 @@ export default defineComponent({
       attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       pane: 'labels'
     }).addTo(this.map as Map);
-
+    
     this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
     this.imageOverlay.setUrl(this.imageUrl).addTo(this.map as Map);
     this.cloudOverlay.setUrl(this.cloudUrl).addTo(this.map as Map);
@@ -912,6 +922,19 @@ export default defineComponent({
     if (this.showFieldOfRegard) {
       this.fieldOfRegardLayer.addTo(this.map as Map);
     }
+    
+    this.map.on('moveend', this.updateURL);
+    this.map.on('zoomend', this.updateURL);
+    
+  },
+  
+  beforeUnmount() {
+    // cleanup event handlers
+    if (this.map) {
+      this.map.off('movend');
+      this.map.off('zoomend');
+    }
+    
   },
 
   computed: {
@@ -1110,6 +1133,23 @@ export default defineComponent({
 
   methods: {
     
+    updateURL() {
+      if (this.map) {
+        const center = this.map.getCenter();
+        const state = {
+          lat: `${center.lat.toFixed(4)}`,
+          lon: `${center.lng.toFixed(4)}`,
+          zoom: `${this.map.getZoom()}`,
+          t: `${this.timestamp}`
+          
+        };
+        const url = new URL(location.origin);
+        const searchParams = new URLSearchParams(state);
+        url.search = searchParams.toString();
+        window.history.replaceState(null,'',url);
+      }
+    },
+    
     cividis(x: number): string {
       return cividis(x);
     },
@@ -1269,7 +1309,9 @@ export default defineComponent({
       // set minIndex and maxIndex to the first and last index of the mod array
       this.minIndex = this.timestamps.indexOf(mod[0]);
       this.maxIndex = this.timestamps.indexOf(mod[mod.length - 1]);
-      this.timeIndex = this.minIndex;
+      if (this.timeIndex < this.minIndex || this.timeIndex > this.maxIndex) {
+        this.timeIndex = this.minIndex;
+      }
       this.imagePreload();
     },
     
@@ -1315,11 +1357,43 @@ export default defineComponent({
 
     moveForwardOneDay() {
       this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) + 1];
+    },
+    
+    uniqueDaysIndex(ts: number) {
+      const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
+      let date = new Date(ts + offset(new Date(ts)));
+      date = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+      return this.uniqueDays.map(e => e.getTime()).indexOf(date.getTime());
     }
     
   },
 
   watch: {
+    timestampsLoaded(loaded: boolean) {
+      // this.$nextTick(() => {
+      if (loaded) {
+        console.log('loaded');
+        if (this.initState.t) {
+          let index = this.uniqueDaysIndex(this.initState.t);
+          if (index == -1) {
+            return;
+          }
+          console.log('set the date');
+          this.singleDateSelected = this.uniqueDays[index];
+          index = this.nearestDateIndex(new Date(this.initState.t));
+          if (index == -1 ) {
+            return;
+          }
+          this.timeIndex = index;
+          // FIXME if needed. if we find the time is not being set, use nextTick
+          // this.$nextTick(() => { this.timeIndex = index;});
+        } 
+      }
+    },
+    
+    timestamp(_val: number) {
+      this.updateURL();
+    },
 
     introSlide(val: number) {
       this.inIntro = val < 4;
@@ -1398,6 +1472,7 @@ export default defineComponent({
     },
     
     singleDateSelected(value: Date) {
+      // console.log(`singleDateSelected ${value}`);
       const timestamp = value.getTime();
       this.setNearestDate(timestamp);
       const index = this.datesOfInterest.map(d => d.getTime()).indexOf(timestamp);
