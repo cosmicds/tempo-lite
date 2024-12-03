@@ -241,6 +241,7 @@ __metadata:
     "@fortawesome/fontawesome-svg-core": "npm:^6.5.1"
     "@fortawesome/free-solid-svg-icons": "npm:^6.5.1"
     "@fortawesome/vue-fontawesome": "npm:^3.0.5"
+    "@types/esri-leaflet": "npm:^3"
     "@types/leaflet": "npm:^1.9.11"
     "@typescript-eslint/eslint-plugin": "npm:^6.19.0"
     "@typescript-eslint/parser": "npm:^6.19.0"
@@ -257,6 +258,7 @@ __metadata:
     dotenv-webpack: "npm:^8.1.0"
     eslint: "npm:^8.56.0"
     eslint-plugin-vue: "npm:^9.20.1"
+    esri-leaflet: "npm:3.0.13"
     leaflet: "npm:^1.9.4"
     leaflet.zoomhome: "npm:^1.0.0"
     less: "npm:^4.2.0"
@@ -652,6 +654,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@terraformer/arcgis@npm:^2.1.0":
+  version: 2.1.2
+  resolution: "@terraformer/arcgis@npm:2.1.2"
+  dependencies:
+    "@terraformer/common": "npm:^2.1.2"
+  checksum: 087dfc7a6f304f6a677714982336846956b753ca867bd7fd775aedc2d5a4cf233229e2970ad72a7ad310c6a6904dc4585d143ac6353331ca5ea70399fb259ae4
+  languageName: node
+  linkType: hard
+
+"@terraformer/common@npm:^2.1.2":
+  version: 2.1.2
+  resolution: "@terraformer/common@npm:2.1.2"
+  checksum: 78807f8102f478f97193cb6eb79fb4976462ba75fbfb8ec0b2ac21f3d2554177bfd78f2b19ed0a111c03e3047ac2110656f01a7de57712f86cd44fd8cda2c049
+  languageName: node
+  linkType: hard
+
 "@trysound/sax@npm:0.2.0":
   version: 0.2.0
   resolution: "@trysound/sax@npm:0.2.0"
@@ -704,6 +722,15 @@ __metadata:
     "@types/estree": "npm:*"
     "@types/json-schema": "npm:*"
   checksum: bd998b5d3f98ac430ec8db6223f1cff1820774c1e72eabda05463256875d97065fd357fba7379dd25e6bfbeb73296f28faff6f4dcbc320f890bb49b09087644d
+  languageName: node
+  linkType: hard
+
+"@types/esri-leaflet@npm:^3":
+  version: 3.0.3
+  resolution: "@types/esri-leaflet@npm:3.0.3"
+  dependencies:
+    "@types/leaflet": "npm:*"
+  checksum: 959e577d1135d889b6171450062dfe44fe29213b5445b2e303f456bab6673dcca7d9f62ed55c8fd0d6328ab64b59dc0f55b50ac52ca7ee65d40a83e9effa90e3
   languageName: node
   linkType: hard
 
@@ -799,7 +826,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/leaflet@npm:^1.9.11":
+"@types/leaflet@npm:*, @types/leaflet@npm:^1.9.11":
   version: 1.9.14
   resolution: "@types/leaflet@npm:1.9.14"
   dependencies:
@@ -3402,6 +3429,18 @@ __metadata:
   dependencies:
     estraverse: "npm:^5.2.0"
   checksum: 44ffcd89e714ea6b30143e7f119b104fc4d75e77ee913f34d59076b40ef2d21967f84e019f84e1fd0465b42cdbf725db449f232b5e47f29df29ed76194db8e16
+  languageName: node
+  linkType: hard
+
+"esri-leaflet@npm:3.0.13":
+  version: 3.0.13
+  resolution: "esri-leaflet@npm:3.0.13"
+  dependencies:
+    "@terraformer/arcgis": "npm:^2.1.0"
+    tiny-binary-search: "npm:^1.0.3"
+  peerDependencies:
+    leaflet: ^1.0.0
+  checksum: a00606bb314f040e3508ac6fa4cf54cbbfde8fddfff6a3b6f1bd32b8fcf516c987c0d135d63bc8182faf29bd9ef22de048010518e91633233c387600ca687cfb
   languageName: node
   linkType: hard
 
@@ -7575,6 +7614,13 @@ __metadata:
   version: 1.1.0
   resolution: "thunky@npm:1.1.0"
   checksum: 825e3bd07ab3c9fd6f753c457a60957c628cacba5dd0656fd93b037c445e2828b43cf0805a9f2b16b0c5f5a10fd561206271acddb568df4f867f0aea0eb2772f
+  languageName: node
+  linkType: hard
+
+"tiny-binary-search@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "tiny-binary-search@npm:1.0.3"
+  checksum: 811eb7b53a9664d14023926ae02f4406c8b215355de1e647809962dba421fbb2c10891f0d45c433043d80f563ce7037dcaf200103bca5674a9cb23803ebb1df7
   languageName: node
   linkType: hard
 

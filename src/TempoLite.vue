@@ -144,6 +144,13 @@
         </template>
         </colorbar-horizontal>
         <div id="map-contents" style="width:100%; height: 100%;">
+          <v-alert
+            id="search-error"
+            type="error"
+            v-model="noEsriData"
+            text="The ESRI Image server does not have data for this date & time."
+          >
+          </v-alert>
           <div id="map"></div>
           <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
           <!-- show hide cloud data, disable if none is available -->
@@ -191,6 +198,27 @@
                 <div id="opacity-slider-label">TEMPO data opacity</div>
                 <v-slider
                     v-model="opacity"
+                    :min="0"
+                    :max="1"
+                    color="#c10124"
+                    density="compact"
+                    hide-details
+                    class="mb-4"
+                  >
+                </v-slider>
+              </div>
+              <div>
+                <v-btn @click="singleOpacity = !singleOpacity">
+                  <v-icon>{{ singleOpacity ? 'mdi-link-variant' : 'mdi-link-variant-off' }}</v-icon>
+                </v-btn>
+              </div>
+              <div
+                id="opacity-slider-container"
+                class="mt-0"
+              >
+                <div id="opacity-slider-label">ESRI data opacity</div>
+                <v-slider
+                    v-model="esriOpacity"
                     :min="0"
                     :max="1"
                     color="#c10124"
@@ -556,7 +584,9 @@ import augustFieldOfRegard from "./assets/august_for.json";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as esri from 'esri-leaflet';
+import { renderingRule, EsriSliceResponse } from "./esri";
 
 type SheetType = "text" | "video" | null;
 type Timeout = ReturnType<typeof setTimeout>;
@@ -821,6 +851,12 @@ export default defineComponent({
         opacity,
         interactive: false,
       }),
+      esriURL: 'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN_BETA/ImageServer',
+      esriTimesteps: [] as number[],
+      esriImageLayer: null as esri.ImageMapLayer | null,
+      esriOpacity: opacity,
+      noEsriData: false,
+      singleOpacity: false,
       opacity,
       timestamps,
       erdTimestamps,
@@ -853,6 +889,24 @@ export default defineComponent({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
+    this.getEsriTimeSteps()
+      .then((json => {
+        // const esriEpoch = new Date('1980-01-01T00:00:00Z').getTime();
+        console.log('esri json', json);
+        json.slices.map(slice => {
+          if (slice.multidimensionalDefinition.length > 0) {
+            const values = slice.multidimensionalDefinition[0].values as number[];
+            if (values && values.length > 0) {
+              this.esriTimesteps.push(values[0]);
+            }
+          }
+        });
+      })
+      ).then(() => {
+        this.updateEsriTimeRange();
+        console.log('done loading esri timesteps');
+        console.log('Most recent esri timestamp:', new Date(this.esriTimesteps[this.esriTimesteps.length - 1]));
+      });
     this.updateTimestamps();
   },
 
@@ -907,6 +961,23 @@ export default defineComponent({
     this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
     this.imageOverlay.setUrl(this.imageUrl).addTo(this.map as Map);
     this.cloudOverlay.setUrl(this.cloudUrl).addTo(this.map as Map);
+    this.esriImageLayer = esri.imageMapLayer({
+      url: this.esriURL,
+      format: 'png',
+      opacity: this.opacity,
+    });
+    
+    this.esriImageLayer.setPixelType('U8');
+    if (this.esriImageLayer) {
+      this.esriImageLayer.setRenderingRule(renderingRule);
+      this.esriImageLayer.setOpacity(0.9);
+      this.updateEsriTimeRange();
+
+    }
+    
+    this.esriImageLayer.addTo(this.map as Map);
+    
+
     
     this.updateFieldOfRegard();
     if (this.showFieldOfRegard) {
@@ -1315,7 +1386,44 @@ export default defineComponent({
 
     moveForwardOneDay() {
       this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) + 1];
-    }
+    },
+    
+    updateEsriTimeRange() {
+      const now = this.timestamp;
+      // find neareast timestep to timestamp
+      if (this.esriTimesteps.length === 0) {
+        return;
+      }
+      const nearest = this.esriTimesteps.reduce((a, b) => Math.abs(b - now) < Math.abs(a - now) ? b : a);
+      console.log(nearest, new Date(nearest), new Date(now), (nearest - now)/(1000 * 60));
+      this.noEsriData = Math.abs((nearest - now)/(1000 * 60)) > 60;
+      if (this.noEsriData) {
+        console.log('nearest time is more than an hour away');
+      }
+      if (this.esriImageLayer) {
+        this.esriImageLayer.setTimeRange(new Date(nearest), new Date(nearest * 2));
+      }
+    },
+    
+    updateEsriOpacity(value: number | null |undefined = undefined) {
+      if (this.esriImageLayer) {
+        this.esriImageLayer.setOpacity(value ?? this.esriOpacity ?? 0.8);
+      }
+    },
+    
+
+    async getEsriTimeSteps(): Promise<EsriSliceResponse> {
+      const url=this.esriURL + '/slices';
+      const format="json";
+      const multidimensionalDefinition = {variableName:"NO2_Troposphere",dimensionName:"StdTime"};
+      const params = {f: format, multidimensionalDefinition: JSON.stringify(multidimensionalDefinition)};
+      const fetchURL = new URL(url);  
+      fetchURL.search = new URLSearchParams(params).toString();
+      return fetch(fetchURL).then(res => {
+        console.log(res.url);
+        return res.json();
+      });
+    },
     
   },
 
@@ -1383,6 +1491,10 @@ export default defineComponent({
       this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
     },
     
+    timestamp() {
+      this.updateEsriTimeRange();
+    },
+    
     radio(value: number | null) {
       if (value == null) {
         // this.minIndex = 0;
@@ -1419,7 +1531,24 @@ export default defineComponent({
     opacity(value: number) {
       this.imageOverlay.setOpacity(value);
       this.cloudOverlay.setOpacity(value);
-    }
+      if (this.singleOpacity) {
+        this.esriOpacity = value;
+        this.updateEsriOpacity();
+      }
+    },
+    
+    esriOpacity(value: number) {
+      this.updateEsriOpacity(value);
+    },
+    
+    noEsriData(value: boolean) {
+      if (value) {
+        this.esriOpacity = 0;
+        this.updateEsriOpacity();
+      } else {
+        this.updateEsriOpacity(this.opacity);
+      }
+    },
   }
 });
 </script>
@@ -2210,5 +2339,13 @@ button:focus-visible,
   image-rendering: crisp-edges;               /* CSS4 Proposed  */
   image-rendering: pixelated;                 /* CSS4 Proposed  */
   -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
+}
+#search-error {
+  position: absolute;
+  z-index: 9999;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
 }
 </style>
