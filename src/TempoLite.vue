@@ -127,6 +127,74 @@
 
       <h1 id="title">What is in the Air You Breathe?</h1>
       </div>
+      <snackbar-alert label="What's new" v-model="showChanges" hide-button>
+        <ol class="snackbar-alert-ol">
+          <li class="change-item" v-for="change in changes" :key="change.date" :data-date="change.date">
+            <span style="font-weight:bold;">{{ change.date }}</span>: {{ change.text }}
+          </li>
+        </ol>
+        <!-- <template v-slot:activator="{ onClick, id }">
+          <v-btn :id="id" @click="onClick" color="primary">
+            Custom Activator
+          </v-btn>
+        </template>  -->
+      </snackbar-alert>
+
+      <div id="menu-area">
+        <share-button
+            :source="currentUrl"
+            buttonColor="black"
+            iconColor="yellow"
+            elevation="0"
+            size="small"
+            rounded="1"
+          />
+        <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" color="yellow" elevation="5">
+          <v-icon size="x-large">mdi-menu</v-icon>
+          <v-menu
+            activator="parent"
+            >
+            <v-list>
+              <v-list-item 
+                tabindex="0"
+                aria-label="Show what's new"
+                @click="showChanges = true"
+                @keyup.enter="showChanges = true"
+                >
+                View Changes
+              </v-list-item>
+              
+              <v-list-item 
+                tabindex="0"
+                aria-label="Show user guide"
+                @click="showUserGuide = true"
+                @keyup.enter="showUserGuide = true"
+                >
+                User Guide
+              </v-list-item>
+              
+              <v-list-item 
+                tabindex="0"
+                aria-label="Show dialog telling about the data"
+                @click="showAboutData = true"
+                @keyup.enter="showAboutData = true"
+                >
+                About the Data
+              </v-list-item>
+              
+              <v-list-item 
+                tabindex="0" 
+                aria-label="Show credits"
+                @click="showCredits = true"
+                @keyup.enter="showCredits = true"
+                >
+                  Credits
+              </v-list-item>
+              
+            </v-list>
+          </v-menu>
+        </v-btn>
+      </div>
       <div id="where" class="big-label">where</div>
       <div id="map-container">
         <colorbar-horizontal
@@ -237,7 +305,7 @@
               </div>
             </v-card>
           </v-menu>
-
+          <div id="location-and-sharing">
           <location-search
             v-model="searchOpen"
             small
@@ -252,6 +320,7 @@
             }"
             @error="(error: string) => searchErrorMessage = error"
           ></location-search>
+        </div>
         </div>
         <colorbar 
           v-if="$vuetify.display.width > 750"
@@ -522,6 +591,81 @@
               </v-card>
             </v-dialog>
           </a>
+          <v-dialog
+            id="user-guide-dialog"
+            v-model="showUserGuide"
+            :scrim="false"
+            location="center center"
+          >
+            <v-card class="dialog-card">
+              <font-awesome-icon
+                  style="position:absolute;right:16px;cursor:pointer;padding:0.5em;margin:-0.5em"
+                  icon="square-xmark"
+                  size="xl"
+                  @click="showUserGuide = false"
+                  @keyup.enter="showUserGuide = false"
+                  :color="accentColor2"
+                  tabindex="0"
+                ></font-awesome-icon>
+              <v-card-title tabindex="0"><h3>User Guide</h3></v-card-title>
+              <v-card-text>
+                <p>
+                  Do consectetur consequat dolore esse nulla .
+                </p>
+
+                <p>
+                  Reprehenderit sint ipsum laborum in reprehenderit sunt eu pariatur ipsum tempor .
+                </p>
+
+                <p>
+                  Ex laboris fugiat ad duis eu ipsum cupidatat veniam fugiat .
+                </p>
+              </v-card-text>
+            </v-card>
+          </v-dialog>
+          
+          
+          <v-dialog
+            id="aboud-data-dialog"
+            v-model="showAboutData"
+            :scrim="false"
+            location="center center"
+          >
+            <v-card class="dialog-card">
+              <font-awesome-icon
+                  style="position:absolute;right:16px;cursor:pointer;padding:0.5em;margin:-0.5em"
+                  icon="square-xmark"
+                  size="xl"
+                  @click="showAboutData = false"
+                  @keyup.enter="showAboutData = false"
+                  :color="accentColor2"
+                  tabindex="0"
+                ></font-awesome-icon>
+              <v-card-title tabindex="0"><h3>Data source and processing</h3></v-card-title>
+              <v-card-text>
+                <p>
+                  This visualization of the TEMPO satellite NO<sub>2</sub> Tropospheric Column Density data is derived from Level 3 data files obtained from the 
+                  <a href="https://asdc.larc.nasa.gov/project/TEMPO" target="_blank" rel="noopener noreferrer">NASA ASDC TEMPO Data Products Page</a>.
+                </p>
+                <br />
+                <p>
+                  The data has been processed and visualized by the CosmicDS team at the Harvard-Smithsonian Center for Astrophysics. The images displayed have undergone preprocessing to filter out erroneous data, and a 50% cloud cover mask has been applied. 
+                  For performance optimization, the data resolution has been halved and reprojected to a Web Mercator projection to ensure compatibility with 
+                  <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet.js</a>.
+                </p>
+                <br />
+                <p>
+                  The data is rendered using the color map provided by NASA's Scientific Visualization Studio.
+                </p>
+                <br />
+                <p>
+                  All data processing scripts are available on 
+                  <a href="https://github.com/johnarban/tempo_processing_scripts" target="_blank" rel="noopener noreferrer">GitHub</a>.
+                </p>
+              </v-card-text>
+            </v-card>
+          </v-dialog>
+
           <!-- make small inline show introduction link button -->
           <a href="#" @click="inIntro = true" @keyup.enter="inIntro = true" style="right: 0;">
             Show Introduction
@@ -544,7 +688,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import L, { Map } from "leaflet";
+import L, { LatLngExpression, Map } from "leaflet";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
 import  { cividis } from "./cividis";
@@ -556,6 +700,7 @@ import augustFieldOfRegard from "./assets/august_for.json";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
+import changes from "./changes";
 
 
 type SheetType = "text" | "video" | null;
@@ -645,6 +790,10 @@ const urlParams = new URLSearchParams(window.location.search);
 const hideIntro = urlParams.get("hideintro") === "true";
 const WINDOW_DONTSHOWINTRO = hideIntro ? true: window.localStorage.getItem("dontShowIntro") === 'true';
 
+const initLat = parseFloat(urlParams.get("lat") || '40.044');
+const initLon = parseFloat(urlParams.get("lon") || '-98.789');
+const initZoom = parseFloat(urlParams.get("zoom") || '4');
+const initTime = urlParams.get("t");
 
 function zpad(n: number, width: number = 2, character: string = "0"): string {
   return n.toString().padStart(width, character);
@@ -768,6 +917,11 @@ export default defineComponent({
 
     const opacity = 0.9;
     return {
+      initState: {
+        loc: [initLat, initLon] as LatLngExpression,
+        zoom: initZoom,
+        t: initTime ? +initTime : null
+      },
       showSplashScreen,
       sheet: null as SheetType,
       layersLoaded: false,
@@ -825,7 +979,8 @@ export default defineComponent({
       timestamps,
       erdTimestamps,
       newTimestamps,
-      fosterTimestamps,      
+      fosterTimestamps,    
+      timestampsLoaded: false,  
       preload: true,
       
       singleDateSelected: new Date(),
@@ -836,6 +991,8 @@ export default defineComponent({
       showControls: false,
       showFieldOfRegard: true,
       showCredits: false,
+      showUserGuide: false,
+      showAboutData: false,
       
       loadedImagesProgress: 0,
       useHighRes: false,
@@ -846,6 +1003,9 @@ export default defineComponent({
       }),
       cloudTimestamps,
       showClouds: false,
+      currentUrl: window.location.href,
+      changes,
+      showChanges: false,
     };
   },
 
@@ -853,12 +1013,12 @@ export default defineComponent({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-    this.updateTimestamps();
+    this.updateTimestamps().then(() => {this.timestampsLoaded = true;});
   },
 
   mounted() {
     this.showSplashScreen = false;
-    this.map = L.map("map", { zoomControl: false }).setView([40.044, -98.789], 4, {
+    this.map = L.map("map", { zoomControl: false }).setView(this.initState.loc, this.initState.zoom, {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       crs: L.CRS.EPSG4326
@@ -903,7 +1063,7 @@ export default defineComponent({
       attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       pane: 'labels'
     }).addTo(this.map as Map);
-
+    
     this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
     this.imageOverlay.setUrl(this.imageUrl).addTo(this.map as Map);
     this.cloudOverlay.setUrl(this.cloudUrl).addTo(this.map as Map);
@@ -912,6 +1072,19 @@ export default defineComponent({
     if (this.showFieldOfRegard) {
       this.fieldOfRegardLayer.addTo(this.map as Map);
     }
+    
+    this.map.on('moveend', this.updateURL);
+    this.map.on('zoomend', this.updateURL);
+    
+  },
+  
+  beforeUnmount() {
+    // cleanup event handlers
+    if (this.map) {
+      this.map.off('movend');
+      this.map.off('zoomend');
+    }
+    
   },
 
   computed: {
@@ -1110,6 +1283,24 @@ export default defineComponent({
 
   methods: {
     
+    updateURL() {
+      if (this.map) {
+        const center = this.map.getCenter();
+        const state = {
+          lat: `${center.lat.toFixed(4)}`,
+          lon: `${center.lng.toFixed(4)}`,
+          zoom: `${this.map.getZoom()}`,
+          t: `${this.timestamp}`
+          
+        };
+        const url = new URL(location.origin);
+        const searchParams = new URLSearchParams(state);
+        url.search = searchParams.toString();
+        this.currentUrl = url.toString();
+        window.history.replaceState(null,'',url);
+      }
+    },
+    
     cividis(x: number): string {
       return cividis(x);
     },
@@ -1269,7 +1460,9 @@ export default defineComponent({
       // set minIndex and maxIndex to the first and last index of the mod array
       this.minIndex = this.timestamps.indexOf(mod[0]);
       this.maxIndex = this.timestamps.indexOf(mod[mod.length - 1]);
-      this.timeIndex = this.minIndex;
+      if (this.timeIndex < this.minIndex || this.timeIndex > this.maxIndex) {
+        this.timeIndex = this.minIndex;
+      }
       this.imagePreload();
     },
     
@@ -1315,11 +1508,43 @@ export default defineComponent({
 
     moveForwardOneDay() {
       this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) + 1];
+    },
+    
+    uniqueDaysIndex(ts: number) {
+      const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
+      let date = new Date(ts + offset(new Date(ts)));
+      date = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+      return this.uniqueDays.map(e => e.getTime()).indexOf(date.getTime());
     }
     
   },
 
   watch: {
+    timestampsLoaded(loaded: boolean) {
+      // this.$nextTick(() => {
+      if (loaded) {
+        console.log('loaded');
+        if (this.initState.t) {
+          let index = this.uniqueDaysIndex(this.initState.t);
+          if (index == -1) {
+            return;
+          }
+          console.log('set the date');
+          this.singleDateSelected = this.uniqueDays[index];
+          index = this.nearestDateIndex(new Date(this.initState.t));
+          if (index == -1 ) {
+            return;
+          }
+          this.timeIndex = index;
+          // FIXME if needed. if we find the time is not being set, use nextTick
+          // this.$nextTick(() => { this.timeIndex = index;});
+        } 
+      }
+    },
+    
+    timestamp(_val: number) {
+      this.updateURL();
+    },
 
     introSlide(val: number) {
       this.inIntro = val < 4;
@@ -1398,6 +1623,7 @@ export default defineComponent({
     },
     
     singleDateSelected(value: Date) {
+      // console.log(`singleDateSelected ${value}`);
       const timestamp = value.getTime();
       this.setNearestDate(timestamp);
       const index = this.datesOfInterest.map(d => d.getTime()).indexOf(timestamp);
@@ -1639,6 +1865,16 @@ ul {
     grid-row: 1 / 2;
     gap: 10px;
   }
+  
+  #menu-area {
+    grid-column: 3 / 4;
+    grid-row: 1 / 2;
+    // border: 1px solid red;
+    display: flex;
+    justify-self: flex-end;
+    gap: 2rem;
+    align-items: center;
+  }
 
   #where {
     display: none;
@@ -1791,12 +2027,17 @@ a {
     flex-shrink: 1;
   }
   
-  .forward-geocoding-container {
+  #location-and-sharing {
     position: absolute;
     bottom: 0;
-    left: 0;
-    
     z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    width:fit-content;
+  }
+  .forward-geocoding-container {
     width: 250px;
     border: 2px solid black;
   }
@@ -2210,5 +2451,36 @@ button:focus-visible,
   image-rendering: crisp-edges;               /* CSS4 Proposed  */
   image-rendering: pixelated;                 /* CSS4 Proposed  */
   -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
+}
+
+.share-button {
+  z-index: 1000;
+  background-color: rgb(255 255 255);
+  border: 1px solid black;
+  backdrop-filter: blur(5px);
+  padding-inline: 5px;
+  border-radius: 10px;
+}
+.cds-snackbar-alert {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  pointer-events: auto;
+  z-index: 999;
+}
+
+@media (max-width: 750px) {
+  .cds-snackbar-alert {
+    top: -1rem;
+  }
+}
+
+.menu-button, .share-button {
+  outline: 2px solid yellow;
+  border: none;
+}
+
+.menu-link {
+  text-decoration: none;
 }
 </style>
