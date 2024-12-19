@@ -15,6 +15,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "outDir": "dist",
+    "noImplicitAny": false,
     "paths": {
       "@/*": [
         "src/*"
@@ -30,7 +31,8 @@
   "include": [
     "plugins/*.ts",
     "src/**/*.ts",
-    "src/assets/*.json",
+    "src/**/*.json",
+    "src/*.vue",
     "src/**/*.vue"
   ]
 }
