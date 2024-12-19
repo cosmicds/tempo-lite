@@ -134,7 +134,7 @@
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cbarNO2"
+          :cmap="cbarNO2RGB"
           start-value="1"
           end-value="150"
           :extend="true"
@@ -144,6 +144,13 @@
         </template>
         </colorbar-horizontal>
         <div id="map-contents" style="width:100%; height: 100%;">
+          <v-alert
+            id="search-error"
+            type="error"
+            v-model="noEsriData"
+            text="The ESRI Image server does not have data for this date & time."
+          >
+          </v-alert>
           <div id="map"></div>
           <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
           <!-- show hide cloud data, disable if none is available -->
@@ -200,6 +207,27 @@
                   >
                 </v-slider>
               </div>
+              <div>
+                <v-btn @click="singleOpacity = !singleOpacity">
+                  <v-icon>{{ singleOpacity ? 'mdi-link-variant' : 'mdi-link-variant-off' }}</v-icon>
+                </v-btn>
+              </div>
+              <div
+                id="opacity-slider-container"
+                class="mt-0"
+              >
+                <div id="opacity-slider-label">ESRI data opacity</div>
+                <v-slider
+                    v-model="esriOpacity"
+                    :min="0"
+                    :max="1"
+                    color="#c10124"
+                    density="compact"
+                    hide-details
+                    class="mb-4"
+                  >
+                </v-slider>
+              </div>
               <div
                 class="d-flex flex-row align-center justify-space-between"
               >
@@ -244,21 +272,21 @@
             stay-open
             buttonSize="xl"
             persist-selected
-            :search-provider="geocodingInfoForSearch"
+            :search-provider="geocodingInfoForSearchLimited"
             @set-location="(feature: MapBoxFeature) => {
               if (feature !== null) {
-                map?.setView([feature.center[1], feature.center[0]], 12);
+                setView([feature.center[1], feature.center[0]], 12);
               }
             }"
             @error="(error: string) => searchErrorMessage = error"
           ></location-search>
         </div>
         <colorbar 
-          v-if="$vuetify.display.width > 750"
+          v-if="displayWidth > 750"
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cbarNO2"
+          :cmap="cbarNO2RGB"
           start-value="1"
           end-value="150"
           :extend="true"
@@ -542,886 +570,448 @@
 </v-app>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
-import L, { Map } from "leaflet";
-import "leaflet.zoomhome";
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, nextTick, Ref } from "vue";
+// import  L, { Map } from "leaflet";
+import { Map } from "maplibre-gl";
+
 import { getTimezoneOffset } from "date-fns-tz";
-import  { cividis } from "./cividis";
-import  { svs } from "./svs_cmap";
-import { cbarNO2, cbarNO2ColorsRevised2023 } from "./revised_cmap";
-import fieldOfRegard from "./assets/TEMPO_FOR.json";
-import augustFieldOfRegard from "./assets/august_for.json";
-// We DO use MapBoxFeature in the template, but eslint isn't picking this up for some reason
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { cbarNO2 } from "./revised_cmap";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
-
-
-type SheetType = "text" | "video" | null;
-type Timeout = ReturnType<typeof setTimeout>;
-
-interface TimezoneInfo {
-  tz: string;
-  name: string;
-}
-
 import { getTimestamps } from "./timestamps";
-
-const erdTimestamps: number[] = [];
-const newTimestamps: number[] = [];
-
-const cloudTimestamps: number[] = [];
-
-const fosterTimestamps = [
-  1698838920000,
-  1698841320000,
-  1698843720000,
-  1698846120000,
-  1698848520000,
-  1698852120000,
-  1698855720000,
-  1698859320000,
-  1698862920000,
-  1698866520000,
-  1698870120000,
-  1698873720000,
-  1698876120000,
-  1698878520000,
-  1698880920000,
-  1699011720000,
-  1699014120000,
-  1699016520000,
-  1699018920000,
-  1699021320000,
-  1699024920000,
-  1699028520000,
-  1699032120000,
-  1699035720000,
-  1699039320000,
-  1699042920000,
-  1699046520000,
-  1699048920000,
-  1699051320000,
-  1699053720000,
-  1711626180000,
-  1711628640000,
-  1711631040000,
-  1711633440000,
-  1711637040000,
-  1711640640000,
-  1711644240000,
-  1711647840000,
-  1711651440000,
-  1711655040000,
-  1711658640000,
-  1711662240000,
-  1711665840000,
-  1711668240000,
-];
-
-// combine the timestamps from the two sources
-
-const timestamps = fosterTimestamps;
-
-interface LocationOfInterest {
-  latlng: L.LatLngExpression;
-  zoom: number;
-  text: string;
-  description: string;
-  time: string;
-  index?: number;
-}
-
-interface InterestingEvent {
-      date: Date;
-      dateString: string;
-      locations: LocationOfInterest[];
-      label?: string;
-      info?: string;
-    }
+import { SheetType, Timeout, InterestingEvent, LatLng, LatLngBounds } from "./types";
+import { useDisplay } from 'vuetify';
+import { useTempoFilenames } from "./useTempoFilenames";
+import { useFieldOfRegard } from "./useFieldOfRegard-Maplibre";
+import { useOverlays } from "./useOverlays-Maplibre";
+import { useMap } from "./useMap-Maplibre";
+import { useSyncedValues } from "./useSyncedValues";
 
 const urlParams = new URLSearchParams(window.location.search);
 const hideIntro = urlParams.get("hideintro") === "true";
-const WINDOW_DONTSHOWINTRO = hideIntro ? true: window.localStorage.getItem("dontShowIntro") === 'true';
+const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';
+
+const sheet = ref<SheetType>(null);
+const accentColor = ref("#068ede");
+const accentColor2 = ref("#ffd302");
+const introSlide = ref(1);
+const inIntro = ref(!WINDOW_DONTSHOWINTRO);
+const dontShowIntro = ref(WINDOW_DONTSHOWINTRO);
+const touchscreen = ref(false);
+const {smAndDown, width: displayWidth } = useDisplay();
+const smallSize = computed(() =>  smAndDown);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const mobile = computed(() => { return smallSize.value && touchscreen.value; });
+const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
+touchscreen.value = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
+const searchOpen = ref(true);
+const searchErrorMessage = ref<string | null>(null);
+const showControls = ref(false);
+const showCredits = ref(false);
+const customImageUrl = ref("");
 
 
-function zpad(n: number, width: number = 2, character: string = "0"): string {
-  return n.toString().padStart(width, character);
+const cssVars = computed(() => {
+  return {
+    '--accent-color': accentColor.value,
+    '--accent-color-2': accentColor2.value,
+    '--app-content-height': showTextSheet.value ? '66%' : '100%',
+  };
+});
+
+const showTextSheet = computed({
+  get() {
+    return sheet.value === 'text';
+  },
+  set(_value: boolean) {
+    selectSheet('text');
+  }
+});
+
+
+
+function selectSheet(name: SheetType) {
+  if (sheet.value === name) {
+    sheet.value = null;
+    nextTick(() => {
+      blurActiveElement();
+    });
+  } else {
+    sheet.value = name;
+  }
 }
 
-export default defineComponent({
-  data() {
-    const showSplashScreen = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
-    const novDecBounds = new L.LatLngBounds(
-      new L.LatLng(17.025, -154.975),
-      new L.LatLng(63.975, -24.475)
-    );
-    
-    const marchBounds = new L.LatLngBounds(
-      new L.LatLng(14.01, -167.99),
-      new L.LatLng(72.99, -13.01)
-    );
+watch(introSlide, (val: number) => {
+  inIntro.value = val < 4;
+});
 
-    const fieldOfRegardLayer = L.geoJSON(
-      fieldOfRegard as GeoJSON.GeometryCollection,
-      {
-        style: {
-          color: "#c10124",
-          fillColor: "transparent",
-          weight: 1,
-          opacity: 0.8,
-        },
-      }
-    ) as L.Layer;
-    
-    
+watch(dontShowIntro, (val: boolean) => {
+  window.localStorage.setItem("dontShowIntro", val.toString());
+  if (!val) {
+    inIntro.value = true;
+  }
+});
 
 
-    const interestingEvents = [
-      {
-        date: new Date(2023, 10, 1) ,
-        dateString: 'Nov 1',
-        label: "November 1, 2023",
-        info: `
-          <p>
-            Because the TEMPO instrument measures sunlight reflected and scattered from Earth’s 
-          surface and atmosphere, it can’t “see” through the clouds&mdash;so these
-          areas appear blank on the map.
-          </p>
-          <p>
-            But right away you’ll see that there 
-          are high concentrations of NO<sub>2</sub> around many urban centers, 
-          and sometimes along major highways.
-          </p>
-          `,
-        locations: [
-          { latlng: [34.359786, -111.700124], 
-            zoom:7, 
-            text: "Arizona Urban Traffic and Fires", 
-            time: '2023-11-01T14:22:00.000Z',
-            description: '<p>NO<sub>2</sub> increases during daily rush hour. In Phoenix, notice the high levels of NO<sub>2</sub> early in the morning, dip down during the day, then start to build back up during the evening commute.</p><p>Fires can be seen between Phoenix and Flagstaff. These are most easily identified as hot spots of NO<sub>2</sub> that appear quickly.</p>',
-          }, 
-          { latlng: [36.1716, -115.1391], 
-            zoom:7, 
-            text: "Las Vegas: Fairly Constant Levels All Day", 
-            time: '2023-11-01T14:22:00.000Z',
-            description: '<p>In this data Las Vegas has less daily variation than many other cities.</p>'
-          }
-        ]
-      }, 
-      {
-        date:  new Date(2023, 10, 3),
-        dateString: 'Nov 3',
-        label: "November 3, 2023",
-        info: `
-          Levels of NO<sub>2</sub> change quickly from day to day, 
-          and even from hour to hour as wind transports 
-          plumes of pollution.
-          `,
-        locations: [
-          { latlng: [36.215934, -119.777500], 
-            zoom:6, 
-            text: "California Traffic and Agriculture", 
-            time: '2023-11-03T14:22:00.000Z',
-            description: '<p>Los Angeles clearly stands out. NO<sub>2</sub> values are even higher than the maximum of our color bar. You can clearly see the highways including Route 10 between San Bernardino and Mexicali and Route 15 leading from San Bernardino towards Las Vegas. A significant amount of NO<sub>2</sub> in California&rsquo;s central valley is a byproduct of agricultural activity there. Excess fertilizer in the soil gets broken down by microbes to produce nitrogen oxides which are very reactive. Emissions that don&rsquo;t come from combustion are typically much harder to see, but the Central Valley is an area where TEMPO data may reveal this agricultural source of pollution.</p>'
-          }, 
-          { latlng: [41.857260, -80.531177], 
-            zoom:5, 
-            text: "Northeast: Large Emissions Plumes", 
-            time: '2023-11-03T12:22:00.000Z',
-            description: '<p>Air pollution is often transported, or moved, over great distances. In this data set large plumes can be seen over the Northeast. If you look closely you can see that many of these plumes appear to originate out of cities in the midwest including Nashville, St. Louis, and Memphis.</p>'
-          }
-        ]
-      }, 
-      {
-        date:  new Date(2024, 2, 28),
-        dateString: 'Mar 28',
-        label: "March 28, 2024",
-        info: `
-          Breathing air with a high concentration of NO<sub>2</sub>, 
-          and the resulting smog it forms when it reacts with other pollutants, 
-          can irritate human respiratory systems. 
-          People with asthma, as well as children and the elderly, 
-          are generally at greater risk for the health effects of air pollution. 
-          TEMPO data can help communities make informed 
-          decisions and take action to improve air quality.
-          `,
-        locations: [
-          { latlng: [31.938392, -99.095785], 
-            zoom:6, 
-            text: "Texas Oil and Gas Production", 
-            time: '2024-03-28T13:04:00.000Z',
-            description: '<p>The Permian basin, near Odessa, has two large plumes of NO2. This is the largest oil and gas producing area in the USA. You can also see here how pollution from a source in one state (Texas) can be transported across state lines to New Mexico.</p>'
-          }, 
-          { latlng: [31.331933, -91.575283], 
-            zoom: 8, 
-            text: "LA/MS Fires", 
-            time: '2024-03-28T16:44:00.000Z',
-            description: '<p>Two fires can be seen popping up south and east of Alexandria. These are most easily identified as hot spots of NO2 that appear quickly.</p>'
-          }
-        ]
-      }  // Mar 28
-    ]  as InterestingEvent[];
-    
 
 
-    const opacity = 0.9;
-    return {
-      showSplashScreen,
-      sheet: null as SheetType,
-      layersLoaded: false,
-      positionSet: false,
-      
-      accentColor: "#068ede",
-      accentColor2: "#ffd302",
-      buttonColor: "#ffffff",
-      introSlide: 1,
-      
 
-      inIntro: !WINDOW_DONTSHOWINTRO,
-      dontShowIntro: WINDOW_DONTSHOWINTRO,
+const novDecBounds = new LatLngBounds(
+  new LatLng(17.025, -154.975),
+  new LatLng(63.975, -24.475)
+);
 
-      radio: null as number | null,
-      sublocationRadio: null as number | null,
+const marchBounds = new LatLngBounds(
+  new LatLng(14.01, -167.99),
+  new LatLng(72.99, -13.01)
+);
 
-      touchscreen: false,
-      playInterval: null as Timeout | null,
-      map: null as Map | null,
-      basemap: null as L.TileLayer.WMS | null | L.TileLayer,
-      novDecBounds,
-      marchBounds: new L.LatLngBounds(
-        new L.LatLng(14.01, -167.99),
-        new L.LatLng(72.99, -13.01)
-      ),
-      bounds: marchBounds.toBBoxString().split(",").map(parseFloat),
-      fieldOfRegardLayer,
-      interestingEvents,
+const bounds = ref(marchBounds.toBBoxString().split(",").map(parseFloat));
 
-      customImageUrl: "",
+const newBounds = computed(() => {
+  return new LatLngBounds(
+    new LatLng(bounds.value[1], bounds.value[0]),
+    new LatLng(bounds.value[3], bounds.value[2])
+  );
+});
 
-      // timezoneOptions: [
-      //   { tz: 'US/Eastern', name: 'Eastern Daylight' },
-      //   { tz: 'US/Central', name: 'Central Daylight' },
-      //   { tz: 'US/Mountain', name: 'Mountain Daylight' },
-      //   { tz: 'US/Arizona', name: 'Mountain Standard' },
-      //   { tz: 'US/Pacific', name: 'Pacific Daylight' },
-      //   { tz: 'US/Alaska', name: 'Alaska Daylight' },
-      //   { tz: 'UTC', name: 'UTC' },
-      // ] as TimezoneInfo[],
-      selectedTimezone: "US/Eastern",
 
-      timestep: 0,
-      timeIndex: 0,
-      minIndex: 0,
-      maxIndex: timestamps.length - 1,
-      timeValues: [...Array(timestamps.length).keys()],
-      playing: false,
-      imageOverlay: new L.ImageOverlay("", novDecBounds, {
-        opacity,
-        interactive: false,
-      }),
-      opacity,
-      timestamps,
-      erdTimestamps,
-      newTimestamps,
-      fosterTimestamps,      
-      preload: true,
-      
-      singleDateSelected: new Date(),
 
-      searchOpen: true,
-      searchErrorMessage: null as string | null,
 
-      showControls: false,
-      showFieldOfRegard: true,
-      showCredits: false,
-      
-      loadedImagesProgress: 0,
-      useHighRes: false,
-      
-      cloudOverlay: new L.ImageOverlay("", novDecBounds, {
-        opacity,
-        interactive: false,
-      }),
-      cloudTimestamps,
-      showClouds: false,
-    };
-  },
+const useHighRes = ref(false);
+const showClouds = ref(false);
+const opacity = ref(0.9);
 
-  created() {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-    this.updateTimestamps();
-  },
+const singleOpacity = ref(false);
 
-  mounted() {
-    this.showSplashScreen = false;
-    this.map = L.map("map", { zoomControl: false }).setView([40.044, -98.789], 4, {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      crs: L.CRS.EPSG4326
-    });
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const zoomHome = L.Control.zoomHome();
-    const originalZH = zoomHome._zoomHome.bind(zoomHome);
-    zoomHome._zoomHome = (_e: Event) => {
-      originalZH();
-      this.sublocationRadio = null;
-    };
-    zoomHome.addTo(this.map);
-    this.addCoastlines();
+const erdTimestamps = ref<number[]>([]);
+const newTimestamps = ref<number[]>([]);
+const cloudTimestamps = ref<number[]>([]);
+const fosterTimestamps = ref<number[]>([
+  1698838920000, 1698841320000, 1698843720000, 1698846120000, 1698848520000, 1698852120000, 1698855720000, 1698859320000, 1698862920000, 1698866520000, 1698870120000, 1698873720000, 1698876120000, 1698878520000, 1698880920000, 1699011720000, 1699014120000, 1699016520000, 1699018920000, 1699021320000, 1699024920000, 1699028520000, 1699032120000, 1699035720000, 1699039320000, 1699042920000, 1699046520000, 1699048920000, 1699051320000, 1699053720000, 1711626180000, 1711628640000, 1711631040000, 1711633440000, 1711637040000, 1711640640000, 1711644240000, 1711647840000, 1711651440000, 1711655040000, 1711658640000, 1711662240000, 1711665840000, 1711668240000,
+]);
 
-    // this.basemap = new L.TileLayer.WMS('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
-    //   crs: L.CRS.EPSG4326
-    // }).addTo(this.map as Map);
-    
-    const labelPane = this.map.createPane("labels");
-    labelPane.style.zIndex = "650";
-    labelPane.style.pointerEvents = "none";
-    
-    this.basemap = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png', {
-      minZoom: 0,
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      // crs: L.CRS.EPSG4326
-      pane: 'labels'
-    }).addTo(this.map as Map);
+
+
+async function updateTimestamps() {
+  return getTimestamps().then((ts) => {
+    erdTimestamps.value = ts.early_release;
+    newTimestamps.value = ts.released;
+    timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+    cloudTimestamps.value = ts.clouds;
+  });
+}
+
+
+import { useUniqueTimeSelection } from "./useUniqueTimeSelection";
+const timestamps = ref<number[]>(fosterTimestamps.value);
+const { 
+  timeIndex,
+  timestamp,
+  date,
+  singleDateSelected,
+  maxIndex,
+  minIndex,
+  uniqueDays,
+  setNearestDate,
+  moveBackwardOneDay,
+  moveForwardOneDay,
+  nearestDateIndex } = useUniqueTimeSelection(timestamps);
+
+const cloudDataAvailable = computed(() => {
+  return cloudTimestamps.value.includes(timestamp.value);
+});
+
+updateTimestamps().then(() => {
+  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
+});
 
     
+const { imageUrl, cloudUrl, getCloudFilename, getTempoDataUrl, getTempoFilename } = useTempoFilenames(timestamp, customImageUrl, useHighRes, fosterTimestamps, erdTimestamps, newTimestamps, cloudTimestamps);
 
-    // L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
-    //   attribution: 'OpenStreetMap, CartoDB',
-    //   pane: 'labels'
-    // }).addTo(this.map as Map);
-    
-    L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png', {
-      minZoom: 0,
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      pane: 'labels'
-    }).addTo(this.map as Map);
 
-    this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
-    this.imageOverlay.setUrl(this.imageUrl).addTo(this.map as Map);
-    this.cloudOverlay.setUrl(this.cloudUrl).addTo(this.map as Map);
-    
-    this.updateFieldOfRegard();
-    if (this.showFieldOfRegard) {
-      this.fieldOfRegardLayer.addTo(this.map as Map);
-    }
-  },
+const imageBounds = computed(() => {
+  if (date.value.getUTCFullYear() === 2023) {
+    return novDecBounds;
+  } else if (date.value.getUTCFullYear() === 2024 && date.value.getUTCMonth() === 2) {
+    return marchBounds;
+  } else {
+    return newBounds.value;
+  }
+});
 
-  computed: {
 
-    /**
-    Properties related to device/screen characteristics
-    */
-    smallSize(): boolean {
-      return this.$vuetify.display.smAndDown;
-    },
-    mobile(): boolean {
-      return this.smallSize && this.touchscreen;
-    },
 
-    /**
-    This lets us inject component data into element CSS
-    */
-    cssVars() {
-      return {
-        '--accent-color': this.accentColor,
-        '--accent-color-2': this.accentColor2,
-        '--app-content-height': this.showTextSheet ? '66%' : '100%',
-      };
-    },
+const { addOverlays } = useOverlays(imageUrl, cloudUrl, showClouds, opacity, imageBounds);
+// import 'leaflet.zoomhome';
 
-    /**
-    Computed flags that control whether the relevant dialogs display.
-    The `sheet` data member stores which sheet is open, so these are just
-    computed wrappers around modifying/querying that which can be used as
-    dialog v-model values
-    */
-    showTextSheet: {
-      get(): boolean {
-        return this.sheet === 'text';
-      },
-      set(_value: boolean) {
-        this.selectSheet('text');
-      }
-    },
+import { no2Url, useEsriLayer} from './useEsriLayer-Maplibre';
 
-    showVideoSheet: {
-      get(): boolean {
-        return this.sheet === "video";
-      },
-      set(value: boolean) {
-        this.selectSheet('video');
-        if (!value) {
-          const video = document.querySelector("#info-video") as HTMLVideoElement;
-          video.pause();
-        }
-      }
-    },
-    timestamp(): number {
-      return this.timestamps[this.timeIndex];
-    },
-    date() {
-      return new Date(this.timestamp);
-    },
-    
-    datesOfInterest(): Date[] {
-      return this.interestingEvents.map(event => event.date);
-    },
 
-    dateStrings(): string[] {
-      return this.interestingEvents.map(event => event.dateString);
-    },
+const { map, initializeMap, addCoastlines, setView } = useMap();
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { addEsriSource, noEsriData, esriOpacity, getEsriTimeSteps } = useEsriLayer(map as Ref<Map | null>, no2Url, timestamp, opacity);
+getEsriTimeSteps();
+useSyncedValues(opacity, esriOpacity, singleOpacity);
 
-    locationsOfInterest(): LocationOfInterest[][] {
-      return this.interestingEvents.map(event => 
-        event.locations.map(loc => ({
-          ...loc,
-          index: this.nearestDateIndex(new Date(loc.time)),
-        }))
-      );
-    },
+const { showFieldOfRegard, addFieldOfRegard } = useFieldOfRegard(date, map as Ref<Map>);
+onMounted(() => {
+  showSplashScreen.value = false;
+  const onLoad = () => {
+    addCoastlines();
+    addOverlays(map.value as Map);
+    addFieldOfRegard();
+    addEsriSource();
+  };
+  try {
+    initializeMap('map', onLoad);
+  } catch (e) {
+    console.error(e);
+  }
+});
 
-    locationsOfInterestText(): string[][] {
-      return this.interestingEvents.map(event => 
-        event.locations.map(loc => loc.description)
-      );
-    },
-    
-    dateIsDST() {
-      const standardOffset = getTimezoneOffset(this.selectedTimezone, new Date(this.date.getUTCFullYear(), 0, 1));
-      const currentOffset = getTimezoneOffset(this.selectedTimezone, this.date);
-      // console.log(standardOffset / (3600 * 1000), currentOffset / (3600 * 1000));
-      // log offsets in houts
-      console.log(`standard: ${standardOffset/ (3600 * 1000)}, current ${currentOffset  / (3600 * 1000)}`);
-      if (standardOffset === currentOffset) {
-        return false;
-      }
-      return true;
-    },
-    
-    timezoneOptions(): TimezoneInfo[] {
-      return [
-        { tz: 'US/Eastern', name: this.dateIsDST ? 'Eastern Daylight' : 'Eastern Standard' },
-        { tz: 'US/Central', name: this.dateIsDST ? 'Central Daylight' : 'Central Standard' },
-        { tz: 'US/Mountain', name: this.dateIsDST ? 'Mountain Daylight' : 'Mountain Standard' },
-        { tz: 'US/Arizona', name: 'Mountain Standard' },
-        { tz: 'US/Pacific', name: this.dateIsDST ? 'Pacific Daylight' : 'Pacific Standard' },
-        { tz: 'US/Alaska', name: this.dateIsDST ? 'Alaska Daylight' : 'Alaska Standard' },
-        { tz: 'UTC', name: 'UTC' },
-      ];
-    },
-    
-    // TODO: Maybe there's a built-in Date function to get this formatting?
-    thumbLabel(): string {
-      const offset = getTimezoneOffset(this.selectedTimezone, this.date);
-      const date = new Date(this.timestamp + offset); 
-      const hours = date.getUTCHours();
-      const amPm = hours >= 12 ? "PM" : "AM";
-      let hourValue = hours % 12;
-      if (hourValue === 0) {
-        hourValue = 12;
-      }
-      return `${this.date.getUTCMonth()+1}/${date.getUTCDate()}/${date.getUTCFullYear()} ${hourValue}:${date.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
-    },
-    
-    imageName(): string {
-      return this.getTempoFilename(this.date);
-    },
-    
-    imageUrl(): string {
-      if (this.customImageUrl) {
-        return this.customImageUrl;
-      }
-      const url = this.getTempoDataUrl(this.timestamp);
-      return url + this.imageName;
-    },
-    
-    cloudUrl(): string {
-      if (!this.showClouds) {
-        return '';
-      }
 
-      if (this.cloudTimestamps.includes(this.timestamp)) {
-        return this.getCloudFilename(this.date);
-      }
-      return '';
-    },
-    
-    cloudDataAvailable(): boolean {
-      return this.cloudTimestamps.includes(this.timestamp);
-    },
-    
-    whichDataSet(): string {
-      if (this.fosterTimestamps.includes(this.timestamp)) {
-        return 'TEMPO-lite';
-      }
-      
-      if (this.erdTimestamps.includes(this.timestamp)) {
-        return 'Early Release (V01)';
-      }
-      
-      if (this.newTimestamps.includes(this.timestamp)) {
-        return 'Level 3 (V03)';
-      }
-      
-      return 'Unknown';
-    },
-    
-    newBounds() {
-      return new L.LatLngBounds(
-        new L.LatLng(this.bounds[1], this.bounds[0]),
-        new L.LatLng(this.bounds[3], this.bounds[2])
-      );
-    },
-    
-    imageBounds() {
-      // currently the 2023 data is all V01
-      if (this.date.getUTCFullYear() === 2023) {
-        return this.novDecBounds;
-      } else if (this.date.getUTCFullYear() === 2024 && this.date.getUTCMonth() === 2) {
-        return this.marchBounds;
-      } else {
-        return this.newBounds;
-      }
-    },
-    
-    uniqueDays(): Date[] {
-      // eastern time
-      const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
-      const easternDates = this.timestamps.map(ts => new Date(ts + offset(new Date(ts))));
-      const days = easternDates.map(date => (new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).getTime());
-      const unique = Array.from(new Set(days));
-      return unique.map(ts => new Date(ts));
-    },
-    
-    highresAvailable() {
-      return this.newTimestamps.includes(this.timestamp);
-    },
-    
-    
-  },
 
-  methods: {
-    
-    cividis(x: number): string {
-      return cividis(x);
-    },
-    
-    svs(x: number): string {
-      return svs(x);
-    },
-    
-    cbarNO2(x: number): string {
-      const rgb = cbarNO2(0, 1, x);
-      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
-    },
-    
-    cbarNO2ColorsRevised2023(x: number): string {
-      const rgb = cbarNO2ColorsRevised2023(0, 1, x);
-      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
-    },
-    
-    blurActiveElement() {
-      const active = document.activeElement;
-      if (active instanceof HTMLElement) {
-        active.blur();
-      }
-    },
 
-    closeSplashScreen() {
-      this.showSplashScreen = false; 
-    },
-    
-    selectSheet(name: SheetType) {
-      if (this.sheet === name) {
-        this.sheet = null;
-        this.$nextTick(() => {
-          this.blurActiveElement();
-        });
-      } else {
-        this.sheet = name;
-      }
-    },
-    addCoastlines() {
-      fetch("coastlines.geojson")
-        .then(response => response.json())
-        .then(data => {
-          L.geoJson(data, {
-            style: { color: "black", weight: 1, opacity: 0.8 }
-          }).addTo(this.map as Map);
-        });
-    },
-    async geocodingInfoForSearch(searchText: string): Promise<MapBoxFeatureCollection | null> {
-      return geocodingInfoForSearch(searchText, {
-        countries: ["US", "CA", "MX", "CU", "BM", "HT", "DO"],
-        limit: 10,
-      }).catch(_err => null);
-    },
-    resetMapBounds() {
-      this.map?.setView([40.044, -98.789], 4);
-    },
-    play() {
-      this.playInterval = setInterval(() => {
-        if (this.timeIndex >= this.maxIndex) {
-          if (this.playInterval) {
-            // clearInterval(this.playInterval);
-            // this.playInterval = null;
-            // let it loop
-            this.timeIndex = this.minIndex;
-          }
-        } else {
-          this.timeIndex += 1;
-        }
-      }, 1000);
-    },
-    pause() {
-      if (this.playInterval) {
-        clearInterval(this.playInterval);
-      }
-    },
-    updateBounds() {
-      this.imageOverlay.setBounds(this.imageBounds);
-      this.cloudOverlay.setBounds(this.imageBounds);
-    },
-    
-    // preloadImages(images: string[]) {
-    //   const promises = images.map(src => loadImage(src));
-    //   return promises;
-    // },
-    
-    async updateTimestamps() {
-      return getTimestamps().then((ts) => {
-        this.erdTimestamps = ts.early_release;
-        this.newTimestamps = ts.released;
-        this.timestamps = this.timestamps.concat(this.erdTimestamps, this.newTimestamps).sort();
-        this.cloudTimestamps = ts.clouds;
-      });
-    },
-    
-    getCloudFilename(date: Date): string {
-      const filename = this.getTempoFilename(date);
-      if (this.useHighRes) {
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/' + filename;
-      } else {
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/resized_images/' + filename;
-      }
-    },
-    
-    getTempoFilename(date: Date): string {
-      return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth()+1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
-    },
-    
-    getTempoDataUrl(timestamp: number): string {
-      if (this.fosterTimestamps.includes(timestamp)) {
-        return 'https://tempo-images-bucket.s3.amazonaws.com/tempo-lite/';
-      }
-      
-      if (this.erdTimestamps.includes(timestamp)) {
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/early_release/images/';
-      }
-      
-      if (this.newTimestamps.includes(timestamp)) {
-        if (this.useHighRes) {
-          return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/';
-        }
-        return "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/resized_images/";
-      }
-      
-      return '';
-    }, 
-    
-    nearestDate(date: Date): number {
-      const onedayinms = 1000 * 60 * 60 * 24;
-      const time = date.getTime();
-      const timestamp = this.timestamps.find(ts => ((ts - time) < onedayinms) && (ts - time) >= 0);
-      if (timestamp !== undefined) {
-        return timestamp;
-      } else {
-        // Return a default value or handle the error appropriately
-        console.warn("No matching timestamp found, returning default value.");
-        return this.timestamps[0]; // Default to the first timestamp
-      }
-    },
 
-    nearestDateIndex(date: Date): number {
-      const onedayinms = 1000 * 60 * 60 * 24;
-      const timestamp = date.getTime();
-      const index = this.timestamps.findIndex(ts => ((ts - timestamp) < onedayinms) && (ts - timestamp) >= 0);
-      if (index === null) {
-        console.log("No matching timestamp found, returning default index.");
-      }
-      return index ?? 0;
-    },
-    
-    setNearestDate(date: number | null) {
-      if (date == null) {
-        return;
-      }
-      const onedayinms = 1000 * 60 * 60 * 24;
-      const mod = this.timestamps.filter(ts => ((ts - date) < onedayinms) && (ts - date) > 0);
-      // set minIndex and maxIndex to the first and last index of the mod array
-      this.minIndex = this.timestamps.indexOf(mod[0]);
-      this.maxIndex = this.timestamps.indexOf(mod[mod.length - 1]);
-      this.timeIndex = this.minIndex;
-      this.imagePreload();
-    },
-    
-    updateFieldOfRegard() {
-      if (this.date.getUTCFullYear() === 2023 && this.date.getUTCMonth() === 7) {
-        (this.fieldOfRegardLayer as L.GeoJSON).clearLayers();
-        (this.fieldOfRegardLayer as L.GeoJSON).addData(augustFieldOfRegard as GeoJSON.GeometryCollection);
-      } else {
-        (this.fieldOfRegardLayer as L.GeoJSON).clearLayers();
-        (this.fieldOfRegardLayer as L.GeoJSON).addData(fieldOfRegard as GeoJSON.GeometryCollection);
-      }
-    },
-    
-    imagePreload() {
-      if (!this.preload) {
-        return;
-      }
-      console.log('preloading images for ', this.thumbLabel);
-      const times = this.timestamps.slice(this.minIndex, this.maxIndex + 1);
-      const images = times.map(ts => this.getTempoDataUrl(ts) + this.getTempoFilename(new Date(ts)));
-      const cloudImages = times.filter(ts => this.cloudTimestamps.includes(ts)).map(ts => this.getCloudFilename(new Date(ts)));
-      images.push(...cloudImages);
-      const promises = _preloadImages(images);
-      let loaded = 0;
-      this.loadedImagesProgress = 0;
-      promises.forEach((promise) => {
-        promise.then(() => {
-          loaded += 1;
-          this.loadedImagesProgress = (loaded / promises.length) * 100;
-        }).catch((err) => {
-          console.log('error loading image', err);
-        });
-      });
-    },
+// only get's changed directly with the radio button or forward/backward buttons
+watch(singleDateSelected, (value: Date) => {
+  console.log('singleDateSelected changed (TempoLite.vue)');
+  const timestamp = value.getTime();
+  const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
+  imagePreload();
+  radio.value = index < 0 ? null : index;
+});
 
-    getUniqueDayIndex(date: Date): number {
-      return this.uniqueDays.findIndex(day => day.getTime() === date.getTime());
-    },
 
-    moveBackwardOneDay() {
-      this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) - 1];
-    },
+const dateStrings = computed(() => {
+  return interestingEvents.value.map(event => event.dateString);
+});
 
-    moveForwardOneDay() {
-      this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) + 1];
-    }
-    
-  },
+const selectedTimezone = ref("US/Eastern");
+const dateIsDST = computed(() => {
+  const standardOffset = getTimezoneOffset(selectedTimezone.value, new Date(date.value.getUTCFullYear(), 0, 1));
+  const currentOffset = getTimezoneOffset(selectedTimezone.value, date.value);
+  if (standardOffset === currentOffset) {
+    return false;
+  }
+  return true;
+});
 
-  watch: {
+const timezoneOptions = computed(() => {
+  return [
+    { tz: 'US/Eastern', name: dateIsDST.value ? 'Eastern Daylight' : 'Eastern Standard' },
+    { tz: 'US/Central', name: dateIsDST.value ? 'Central Daylight' : 'Central Standard' },
+    { tz: 'US/Mountain', name: dateIsDST.value ? 'Mountain Daylight' : 'Mountain Standard' },
+    { tz: 'US/Arizona', name: 'Mountain Standard' },
+    { tz: 'US/Pacific', name: dateIsDST.value ? 'Pacific Daylight' : 'Pacific Standard' },
+    { tz: 'US/Alaska', name: dateIsDST.value ? 'Alaska Daylight' : 'Alaska Standard' },
+    { tz: 'UTC', name: 'UTC' },
+  ];
+});
 
-    introSlide(val: number) {
-      this.inIntro = val < 4;
-      return;
-    },
-    
-    dontShowIntro(val: boolean) {
-      window.localStorage.setItem("dontShowIntro", val.toString());
-      if (!val) {
-        this.inIntro = true;
-      }
-    },
-    
-    loadedImagesProgress(val: number) {
-      this.playing = false;
-      const btn = this.$el.querySelector('#play-pause-button');
-      if (btn) {
-        if (val < 100) {
-          btn.setAttribute('disabled', 'true');
-        } else {
-          btn.removeAttribute('disabled');
-        }
-        
-      }
-    },
+const thumbLabel = computed(() => {
+  const offset = getTimezoneOffset(selectedTimezone.value, date.value);
+  const dateWithOffset = new Date(timestamp.value + offset);
+  const hours = dateWithOffset.getUTCHours();
+  const amPm = hours >= 12 ? "PM" : "AM";
+  let hourValue = hours % 12;
+  if (hourValue === 0) {
+    hourValue = 12;
+  }
+  return `${date.value.getUTCMonth() + 1}/${dateWithOffset.getUTCDate()}/${dateWithOffset.getUTCFullYear()} ${hourValue}:${dateWithOffset.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
+});
 
-    playing(play: boolean) {
-      if (play) {
-        this.play();
-      } else {
-        this.pause();
-      }
-    },
-    imageUrl(url: string) {
-      this.updateBounds();
-      this.imageOverlay.setUrl(url);
-      this.updateFieldOfRegard();
-    },
-    
-    cloudUrl(url: string) {
-      this.cloudOverlay.setUrl(url);
-    },
-    
-    useHighRes() {
-      this.imagePreload();
-    },
-    
-    imageBounds(bounds: L.LatLngBounds) {
-      console.log(this.whichDataSet, bounds.toBBoxString());
-    },
-    
-    showFieldOfRegard (show: boolean) {
-      if (show) {
-        this.fieldOfRegardLayer.addTo(this.map as Map);
-      } else if (this.map) {
-        this.map.removeLayer(this.fieldOfRegardLayer as L.Layer);
-      }
-    },
-    
-    timestamps() {
-      this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
-    },
-    
-    radio(value: number | null) {
-      if (value == null) {
-        // this.minIndex = 0;
-        // this.maxIndex = this.timestamps.length - 1;
-        this.setNearestDate(this.singleDateSelected.getTime());
-        this.sublocationRadio = null;
-        return;
-      }
-      const date = this.datesOfInterest[value] ?? this.singleDateSelected;
-      this.singleDateSelected = date;
-      this.setNearestDate(date.getTime());
-      this.sublocationRadio = null;
-    },
-    
-    singleDateSelected(value: Date) {
-      const timestamp = value.getTime();
-      this.setNearestDate(timestamp);
-      const index = this.datesOfInterest.map(d => d.getTime()).indexOf(timestamp);
-      this.radio = index < 0 ? null : index;
-    },
-    
-    sublocationRadio(value: number | null) {
-      if (value !== null && this.radio != null) {
-        const loi = this.locationsOfInterest[this.radio][value];
-        this.map?.setView(loi.latlng, loi.zoom);
-        if (loi.index !== undefined) {
-          this.timeIndex = loi.index;
-        } else {
-          console.warn('No index found for location of interest');
-        }
-      }
-    },
 
-    opacity(value: number) {
-      this.imageOverlay.setOpacity(value);
-      this.cloudOverlay.setOpacity(value);
+
+
+
+
+
+
+/* HANDLE LOCATION OF INTEREST SELECTION */
+
+const radio = ref<number | null>(null);
+const sublocationRadio = ref<number | null>(null);
+
+import _interestingEvents from "./locationsOfInterest";
+const interestingEvents = ref<InterestingEvent[]>(_interestingEvents as InterestingEvent[]);
+
+const datesOfInterest = computed(() => {
+  return interestingEvents.value.map(event => event.date);
+});
+
+const locationsOfInterest = computed(() => {
+  return interestingEvents.value.map(event =>
+    event.locations.map(loc => ({
+      ...loc,
+      index: nearestDateIndex(new Date(loc.time)),
+    }))
+  );
+});
+
+const locationsOfInterestText = computed(() => {
+  return interestingEvents.value.map(event =>
+    event.locations.map(loc => loc.description)
+  );
+});
+
+
+watch(radio, (value: number | null) => {
+  if (value == null) {
+    setNearestDate(singleDateSelected.value.getTime());
+    sublocationRadio.value = null;
+    return;
+  }
+  const date = datesOfInterest.value[value] ?? singleDateSelected.value;
+  singleDateSelected.value = date;
+  setNearestDate(date.getTime());
+  sublocationRadio.value = null;
+});
+
+watch(sublocationRadio, (value: number | null) => {
+  if (value !== null && radio.value != null) {
+    const loi = locationsOfInterest.value[radio.value][value];
+    setView(loi.latlng, loi.zoom);
+    if (loi.index !== undefined) {
+      timeIndex.value = loi.index;
+    } else {
+      console.warn('No index found for location of interest');
     }
   }
 });
+
+
+/* HANDLE IMAGE AND CLOUD DATA OVERLAYS */
+
+
+
+// convenience function only for debugging
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const whichDataSet = computed(() => {
+  if (fosterTimestamps.value.includes(timestamp.value)) {
+    return 'TEMPO-lite';
+  }
+  if (erdTimestamps.value.includes(timestamp.value)) {
+    return 'Early Release (V01)';
+  }
+  if (newTimestamps.value.includes(timestamp.value)) {
+    return 'Level 3 (V03)';
+  }
+  return 'Unknown';
+});
+
+
+
+
+
+
+const highresAvailable = computed(() => {
+  return newTimestamps.value.includes(timestamp.value);
+});
+
+
+function cbarNO2RGB(x: number): string {
+  const rgb = cbarNO2(0, 1, x);
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
+}
+
+
+
+
+async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
+  return geocodingInfoForSearch(searchText, {
+    countries: ["US", "CA", "MX", "CU", "BM", "HT", "DO"],
+    limit: 10,
+  }).catch(_err => null);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function resetMapBounds() {
+  setView([40.044, -98.789], 4);
+}
+
+const playing = ref(false);
+const playInterval = ref<Timeout | null>(null);
+
+function play() {
+  playInterval.value = setInterval(() => {
+    if (timeIndex.value >= maxIndex.value) {
+      timeIndex.value = minIndex.value;
+    } else {
+      timeIndex.value += 1;
+    }
+  }, 1000);
+}
+
+function pause() {
+  if (playInterval.value) {
+    clearInterval(playInterval.value);
+  }
+}
+
+watch(playing, (playVal: boolean) => {
+  if (playVal) {
+    play();
+  } else {
+    pause();
+  }
+});
+
+
+const preload = ref(true);
+const loadedImagesProgress = ref(0);
+function imagePreload() {
+  if (!preload.value) {
+    return;
+  }
+  console.log('preloading images for ', thumbLabel.value);
+  const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1);
+  const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
+  const cloudImages = times.filter(ts => cloudTimestamps.value.includes(ts)).map(ts => getCloudFilename(new Date(ts)));
+  images.push(...cloudImages);
+  const promises = _preloadImages(images);
+  let loaded = 0;
+  loadedImagesProgress.value = 0;
+  promises.forEach((promise) => {
+    promise.then(() => {
+      loaded += 1;
+      loadedImagesProgress.value = (loaded / promises.length) * 100;
+    }).catch((err) => {
+      console.log('error loading image', err);
+    });
+  });
+}
+
+watch(loadedImagesProgress, (val: number) => {
+  playing.value = false;
+  const btn = document.querySelector('#play-pause-button');
+  if (btn) {
+    if (val < 100) {
+      btn.setAttribute('disabled', 'true');
+    } else {
+      btn.removeAttribute('disabled');
+    }
+  }
+});
+
+
+function blurActiveElement() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) {
+    active.blur();
+  }
+}
+
+
+watch(useHighRes, () => {
+  imagePreload();
+});
+
+
+
+
 </script>
 
 <style lang="less">
@@ -2211,4 +1801,17 @@ button:focus-visible,
   image-rendering: pixelated;                 /* CSS4 Proposed  */
   -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
 }
+#search-error {
+  position: absolute;
+  z-index: 9999;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+canvas.maplibregl-canvas {
+  background-color: whitesmoke;
+}
+
 </style>
