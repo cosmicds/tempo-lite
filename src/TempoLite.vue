@@ -18,7 +18,7 @@
               <div id="intro-window-close-button">
               <font-awesome-icon
                 size="xl"
-                class="ma-1"
+                class="ma-3"
                 color="#b3d5e6"
                 icon='square-xmark'
                 @click="inIntro = !inIntro"
@@ -28,7 +28,46 @@
               /> 
             </div>
             </template>
-            <v-window-item :value="1">
+
+            <v-window-item :value="1"
+              id="splash-screen"
+            >
+              <div
+                id="first-splash-row"
+              >
+                <div id="splash-screen-text">
+                  What Is in the Air You Breathe?
+                </div>
+                <div>
+                  Explore daily pollution maps over North America and find out.
+                </div>
+              </div>
+
+              <div>
+                <v-btn
+                  class="splash-get-started"
+                  @click="introSlide++"
+                  @keyup.enter="introSlide++"
+                  :color="accentColor"
+                  :density="xSmallSize ? 'compact' : 'default'"
+                  size="x-large"
+                  variant="elevated"
+                  rounded="lg"
+                >
+                  Get Started
+                </v-btn>
+              </div>
+            
+              <div id="splash-screen-acknowledgements">
+                Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
+                
+                <div id="splash-screen-logos">
+                  <credit-logos/>
+                </div>
+              </div>
+            </v-window-item>
+            
+            <v-window-item :value="2">
               <div class="intro-text">
                 <p class="mb-5">
                   The TEMPO satellite mission (Tropospheric Emissions: Monitoring Pollution), launched in April 2023, is the first space-based instrument to monitor major air pollutants across the North American continent every daylight hour at high spatial resolution. A collaboration between NASA and the Smithsonian Astrophysical Observatory, the TEMPO instrument gathers hourly daytime scans of the atmosphere over North America from the Atlantic Ocean to the Pacific Coast and from roughly Mexico City to central Canada.
@@ -36,7 +75,7 @@
               </div>
             </v-window-item>
             
-            <v-window-item :value="2">
+            <v-window-item :value="3">
               <div class="intro-text mb-3">
                 <p class="mb-3">
                   This Data Story provides an introduction to what can be learned from TEMPO’s data, which became publicly available May 20, 2024. The map here visualizes hourly Nitrogen Dioxide (NO<sub>2</sub>) data over time. NO<sub>2</sub> can be produced by:
@@ -53,7 +92,7 @@
                 </p> 
               </div>
             </v-window-item>
-            <v-window-item :value="3">
+            <v-window-item :value="4">
               <div class="intro-text mb-3">      
                 <p class="mb-3">
                   In this interactive page you can:
@@ -99,13 +138,14 @@
             </div>
             
             <v-btn
+              v-if="(introSlide > 1)"
               id="intro-next-button"
               :color="accentColor"
               @click="introSlide++"
               @keyup.enter="introSlide++"
               elevation="0"
               >
-              {{ introSlide < 3 ? 'Next' : 'Get Started' }}
+              {{ introSlide < 4 ? 'Next' : 'Get Started' }}
             </v-btn>
           </div>
         </div>
@@ -1322,7 +1362,7 @@ export default defineComponent({
   watch: {
 
     introSlide(val: number) {
-      this.inIntro = val < 4;
+      this.inIntro = val < 5;
       return;
     },
     
@@ -1522,12 +1562,12 @@ ul {
 
   @media (max-width: 700px) {
     width: 95%;
-    padding: 1em;
+    padding: 3em 1em 1em;
   }
 
   @media (min-width: 701px) {
     width: 75%;
-    padding: 2em;
+    padding: 3em 2em 2em;
   }
 
   .span-accent {
@@ -1573,6 +1613,80 @@ ul {
     
     #intro-next-button {
       background-color: rgba(18, 18, 18,.5);
+    }
+  }
+}
+
+
+#splash-screen {
+  color: #E0E0E0;
+
+  justify-content: space-around;
+  align-content: center;
+  padding-top: 4rem;
+  padding-bottom: 1rem;
+
+  font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
+
+  div {
+    margin-inline: auto;
+    text-align: center;
+  }
+  // make a paragraph inside the div centered horizontally and vertically
+  p {
+    font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
+    font-weight: bold;
+    vertical-align: middle;
+  }
+
+  #first-splash-row {
+    width: 100%;
+    font-size: 1.25em;
+  }
+
+  #splash-screen-text {
+    // in the grid, the text is in the 2nd column
+    display: flex;
+    flex-direction: column;
+    line-height: 130%;
+    font-size: 2em;
+    color: var(--smithsonian-yellow);
+  }
+
+  .splash-get-started {
+    border: 2px solid white;
+    font-size: 1.5em;
+    margin-top: 10%;
+    margin-bottom: 2%;
+    font-weight: bold !important;
+  }
+
+  #splash-screen-acknowledgements {
+    margin-top: 3rem;
+    font-size: calc(1.7 * var(--default-font-size));
+    line-height: calc(1.5 * var(--default-line-height));
+    width: 80%;
+    color: var(--smithsonian-yellow);
+  }
+
+  #splash-screen-logos {
+    margin-block: 0.75em;
+
+    img {
+    height: 5vmin;
+    vertical-align: middle;
+    margin: 2px;
+    }
+
+    @media only screen and (max-width: 600px) {
+      img {
+        height: 24px;
+      }
+    }
+
+    svg {
+      vertical-align: middle;
+      height: 24px;
     }
   }
 }
@@ -2064,7 +2178,7 @@ button:focus-visible,
   }
   
   #introduction-overlay .intro-text {
-    font-size: 1.15em;
+    font-size: min(1.15em, 2vw);
   }
   
   #introduction-overlay ul li {
