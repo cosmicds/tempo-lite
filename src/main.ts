@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Vue, { createApp } from "vue";
 
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
@@ -7,6 +8,10 @@ import Colorbar from './ColorBar.vue';
 import ColorBarHorizontal from "./ColorBarHorizontal.vue";
 import InfoButton from "./InfoButton.vue";
 import vuetify from "../plugins/vuetify";
+import SnackbarAlert from "./SnackbarAlert.vue";
+import ShareButton from "./ShareButton.vue";
+import CDSDialog from "./CDSDialog.vue";
+
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -24,6 +29,7 @@ import {
 
 import VueDatePicker from "@vuepic/vue-datepicker";
 import '@vuepic/vue-datepicker/dist/main.css';
+import { UseClipboard } from "@vueuse/components";
 
 library.add(faBookOpen);
 library.add(faPlay);
@@ -71,6 +77,10 @@ createApp(TempoLite, {})
   .component('info-button', InfoButton)
   .component('colorbar-horizontal', ColorBarHorizontal)
   .component('date-picker', VueDatePicker)
+  .component('use-clipboard', UseClipboard as Vue.Component)
+  .component('snackbar-alert', SnackbarAlert)
+  .component('share-button', ShareButton)
+  .component('cds-dialog', CDSDialog)
 
   // Mount
   .mount("#app");
