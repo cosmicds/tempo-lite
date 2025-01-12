@@ -19,7 +19,8 @@ export interface Manifest {
 
 export async function fetchManifest(): Promise<Manifest> {
   console.log("fetching manifest");
-  const url = "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/manifest.json";
+  // const url = "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/manifest.json";
+  const url = "https://raw.githubusercontent.com/johnarban/wwt_interactives/refs/heads/main/images/tempo-data/manifest.json";
   // try to use cache busting, but if that fails try with plain url
   return fetch(`${url}?version=${Date.now()}}`)
     .then((response) => response.json())
