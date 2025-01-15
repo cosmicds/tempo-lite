@@ -63,6 +63,8 @@
                 
                 <div id="splash-screen-logos">
                   <credit-logos/>
+                  <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
+                  ><img alt="Smithsonian Logo" src="220px-Smithsonian_sun_logo_no_text.svg.png"></a>
                 </div>
               </div>
             </v-window-item>
@@ -1852,6 +1854,15 @@ ul {
 
   #splash-screen-logos {
     margin-block: 0.75em;
+    
+    /* format for including more inline logos */
+    display: flex; // place on same line
+    justify-content: center; // align center
+    
+    > * {
+      margin-inline: 0; // counteract margin-inline: auto from #splash-screen div
+    }
+    /* ************ */
 
     img {
     height: 5vmin;
