@@ -224,8 +224,8 @@
               <v-list-item 
                 tabindex="0"
                 aria-label="Show user guide"
-                @click="() => {introSlide = 3; inIntro = true;}"
-                @keyup.enter="() => {introSlide = 3; inIntro = true;}"
+                @click="() => {introSlide = 4; inIntro = true;}"
+                @keyup.enter="() => {introSlide = 4; inIntro = true;}"
                 >
                 User Guide
               </v-list-item>
