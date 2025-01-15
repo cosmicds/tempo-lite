@@ -62,9 +62,9 @@
                 Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
                 
                 <div id="splash-screen-logos">
-                  <credit-logos/>
                   <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
                   ><img alt="Smithsonian Logo" src="220px-Smithsonian_sun_logo_no_text.svg.png"></a>
+                  <credit-logos/>
                 </div>
               </div>
             </v-window-item>
