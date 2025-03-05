@@ -51,8 +51,17 @@ export async function fetchLaFireManifest(): Promise<LAManifest> {
     
 }
 
+export async function fetchBacklogManifest(): Promise<Manifest> {
+  console.log("fetching backlog manifest");
+  const url = "https://tempo.si.edu/data2/backlog/manifest.json";
+  // try to use cache busting, but if that fails try with plain url
+  return fetch(`${url}?version=${Date.now()}}`)
+    .then((response) => response.json())  
+    .catch(() => fetch(url).then((response) => response.json()));
+}
+
 interface Timestamps {
-  early_release: number[];
+  early_release?: number[];
   released: number[];
   clouds: number[];
 }
@@ -70,4 +79,11 @@ export async function getExtendedRangeTimestamps(): Promise<number[]> {
   const ts =  manifest['data_range_0_300/released'].timestamps;
   // console.log(ts.map(t => new Date(t)));
   return ts;
+}
+
+export async function getBacklogTimestamps(): Promise<Timestamps> {
+  const manifest = await fetchBacklogManifest();
+  const released = manifest.released;
+  const clouds = manifest.clouds;
+  return { released: released.timestamps, clouds: clouds.timestamps };
 }
