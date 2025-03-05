@@ -6,7 +6,8 @@ export const interestingEvents = [
     endDate: new Date(2025, 0, 31),
     dateString: "Jan 8",
     label: "LA Wildfires (Jan 8-31, 2025)",
-    highlighted: true,
+    highlighted: false,
+    hasFeature: true,
     info: `
     <p> 
       Beginning on January 7, 2025, a series of wildfires broke out 

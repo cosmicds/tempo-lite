@@ -14,4 +14,5 @@ export interface InterestingEvent {
     label?: string;
     info?: string;
     highlighted?: boolean;
+    hasFeature?: boolean;
   }

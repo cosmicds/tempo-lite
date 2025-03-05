@@ -382,6 +382,21 @@
                   </p>
                 </info-button>
               </div>
+                <div v-if="showExtendedRangeFeatures && extendedRangeAvailable" class="d-flex flex-row align-center justify-space-between">
+                  <v-checkbox
+                  :disabled="!extendedRangeAvailable"
+                  v-model="showExtendedRange"
+                  @keyup.enter="showExtendedRange = !showExtendedRange"
+                  label="Use Extended NO2 range"
+                  color="#c10124"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    If data is available, show the extended range of NO<sub>2</sub> values.
+                  </p>
+                </info-button>
+              </div>
             </v-card>
           </v-menu>
           <div id="location-and-sharing">
@@ -403,7 +418,7 @@
         </div>
         
         <div id="la-fires">
-          <v-btn v-if="!smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
+          <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
             {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
           </v-btn>
           <v-btn v-if="smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
@@ -654,8 +669,8 @@
             hide-details
           />
           <v-checkbox
-            v-if="showExtendedRangeFeatures"
-            :disabled="!showExtendedRangeFeatures"
+            v-if="showExtendedRangeFeatures && extendedRangeAvailable"
+            :disabled="!extendedRangeAvailable"
             v-model="showExtendedRange"
             @keyup.enter="showExtendedRange = !showExtendedRange"
             label="Use Extended NO2 range"
@@ -881,9 +896,9 @@ const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
 
 
-const hash = window.location.hash;
-const showExtendedRangeFeatures = hash.includes("extreme-events");
-const extendedRange = showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
+// const hash = window.location.hash;
+const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
+const extendedRange = false; //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
 // set the url to be only the base url, path and hash
 const newUrl = location.origin + location.pathname + location.hash;
 window.history.replaceState({}, '', newUrl);
@@ -1343,7 +1358,8 @@ export default defineComponent({
       }
     },
     updateHash() {
-      this.showExtendedRangeFeatures = window.location.hash.includes("extreme-events");
+      // this.showExtendedRangeFeatures = window.location.hash.includes("extreme-events");
+      return;
     },
     
     updateURL() {
