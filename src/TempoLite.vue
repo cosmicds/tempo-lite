@@ -799,7 +799,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useDisplay } from 'vuetify';
 import L, { LatLngExpression, Map } from "leaflet";
@@ -808,13 +807,10 @@ import { getTimezoneOffset } from "date-fns-tz";
 import { cbarNO2 } from "./revised_cmap";
 import fieldOfRegard from "./assets/TEMPO_FOR.json";
 import augustFieldOfRegard from "./assets/august_for.json";
-// We DO use MapBoxFeature in the template, but eslint isn't picking this up for some reason
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { InterestingEvent, LocationOfInterest } from "./types";
+
 import { interestingEvents } from "./interestingEvents";
 const display = useDisplay();
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -823,10 +819,7 @@ const calendar = ref<DatePickerInstance | null>(null);
 type SheetType = "text" | "video" | null;
 type Timeout = ReturnType<typeof setTimeout>;
 
-interface TimezoneInfo {
-  tz: string;
-  name: string;
-}
+
 
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 
@@ -948,16 +941,16 @@ const homeState = ref({
   t: null as number | null
 });
 const sheet = ref<SheetType>(null);
-const layersLoaded = ref(false);
-const positionSet = ref(false);
+
+
 
 const accentColor = ref("#068ede");
 const accentColor2 = ref("#ffcc33");
-const buttonColor = ref("#ffffff");
+
 const introSlide = ref(1);
 const inIntro = ref(!WINDOW_DONTSHOWINTRO);
 const dontShowIntro = ref(WINDOW_DONTSHOWINTRO);
-const loadingOverlay = ref(true);
+
 const showNotice = ref(true);
 const radio = ref<number | null>(null);
 const sublocationRadio = ref<number | null>(null);
@@ -968,11 +961,11 @@ const basemap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
 // const interestingEvents = ref(interestingEvents);
 const customImageUrl = ref("");
 const selectedTimezone = ref("US/Eastern");
-const timestep = ref(0);
+
 const timeIndex = ref(0);
 const minIndex = ref(0);
 const maxIndex = ref(timestamps.value.length - 1);
-const timeValues = ref([...Array(timestamps.value.length).keys()]);
+
 const playing = ref(false);
 const imageOverlay = new L.ImageOverlay("", novDecBounds, {
   opacity: 0.9,
@@ -1105,18 +1098,7 @@ const showTextSheet = computed({
   }
 });
 
-const showVideoSheet = computed({
-  get() {
-    return sheet.value === "video";
-  },
-  set(value: boolean) {
-    selectSheet('video');
-    if (!value) {
-      const video = document.querySelector("#info-video") as HTMLVideoElement;
-      video.pause();
-    }
-  }
-});
+
 
 const timestamp = computed(() => {
   return timestamps.value[timeIndex.value];
@@ -1333,9 +1315,6 @@ function blurActiveElement() {
   }
 }
 
-function closeSplashScreen() {
-  showSplashScreen.value = false;
-}
 
 function selectSheet(name: SheetType) {
   if (sheet.value === name) {
@@ -1365,6 +1344,7 @@ async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBox
   }).catch(_err => null);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
   map.value?.setView([40.044, -98.789], 4);
 }
@@ -1450,6 +1430,7 @@ function getTempoDataUrl(timestamp: number): string {
   return '';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function nearestDate(date: Date): number {
   const onedayinms = 1000 * 60 * 60 * 24;
   const time = date.getTime();
