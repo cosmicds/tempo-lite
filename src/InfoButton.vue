@@ -75,6 +75,8 @@ export default defineComponent({
 .v-card-info-text {
   font-size: 1em;
   line-height: 1.5em;
+  padding-block: 1em;
+  padding-inline: 1.5em;
   
   p {
     margin-block: 0.5em;
