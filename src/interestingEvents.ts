@@ -1,12 +1,13 @@
 import { InterestingEvent } from "./types";
 
-export const interestingEvents = [
+export const interestingEvents: InterestingEvent[] = [
   {
     date: new Date(2025, 0, 8),
-    endDate: new Date(2025, 0, 20),
+    endDate: new Date(2025, 0, 31),
     dateString: "Jan 8",
-    label: "LA Wildfires (Jan 8, 2025)",
-    highlighted: true,
+    label: "LA Wildfires (Jan 8-31, 2025)",
+    highlighted: false,
+    hasFeature: true,
     info: `
     <p> 
       Beginning on January 7, 2025, a series of wildfires broke out 
@@ -15,6 +16,13 @@ export const interestingEvents = [
     <p>
       The TEMPO instrument can detect the NO<sub>2</sub> plumes from these fires,
       helping scientists and the public to understand the extent of the pollution and how it moves through the air. 
+    </p>
+    <p>
+      Compare levels of NO<sub>2</sub> before, during, and after the fires. 
+      Click <a href="#extreme-events" ><code>#extreme-events</code></a> to view the data with an extended range of NO<sub>2</sub> values displayed.
+    </p>
+    <p>
+      Extended range images are available from Jan 7 - Feb 2, 2025 for this event
     </p>
     `,
     locations: [
@@ -136,4 +144,4 @@ export const interestingEvents = [
     ],
   },
 
-] as InterestingEvent[];
+];
