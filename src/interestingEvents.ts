@@ -1,6 +1,6 @@
 import { InterestingEvent } from "./types";
 
-export const interestingEvents = [
+export const interestingEvents: InterestingEvent[] = [
   {
     date: new Date(2025, 0, 8),
     endDate: new Date(2025, 0, 31),
@@ -144,4 +144,4 @@ export const interestingEvents = [
     ],
   },
 
-] as InterestingEvent[];
+];

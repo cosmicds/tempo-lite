@@ -181,6 +181,7 @@
       </a>
 
       <h1 id="title">What is in the Air You Breathe?</h1>
+      <a href="#extreme-events" ><code>#extreme-events</code></a>
       <!-- </div> -->
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
         <ul class="snackbar-alert-ul">
@@ -940,7 +941,7 @@ const initTime = urlParams.get("t");
 
 // const hash = window.location.hash;
 const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
-const extendedRange = false; //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
+const extendedRange = window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"; //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
 // set the url to be only the base url, path and hash
 const newUrl = location.origin + location.pathname + location.hash;
 window.history.replaceState({}, '', newUrl);
@@ -1097,7 +1098,14 @@ export default defineComponent({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-    this.updateTimestamps().then(() => {this.timestampsLoaded = true;});
+    this.updateTimestamps().then(() => {this.timestampsLoaded = true;})
+      .then(() => {
+        if (window.location.hash.includes("extreme-events")) {
+          this.$nextTick(() => {
+            this.activateExtremeEvents();
+          });
+        }
+      });
   },
 
   mounted() {
@@ -1400,8 +1408,9 @@ export default defineComponent({
       }
     },
     updateHash() {
-      // this.showExtendedRangeFeatures = window.location.hash.includes("extreme-events");
-      return;
+      if (window.location.hash.includes("extreme-events")) {
+        this.activateExtremeEvents();
+      }
     },
     
     updateURL() {
@@ -1682,7 +1691,8 @@ export default defineComponent({
     
     goToLA() {
       this.showLADialog = false;
-      const event = this.interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
+      const event = this.interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8-31, 2025)');
+      console.log('gotola', event);
       if (event !== undefined && this.map ) {
         const loi = event[0].locations;
         this.map.setView(loi[0].latlng, loi[0].zoom);
@@ -1691,7 +1701,21 @@ export default defineComponent({
     
     activateLAViewer() {
       this.showLADialog = true;
-    }
+    },
+    
+    activateExtremeEvents() {
+      // Find the LA Wildfires event
+      const laWildfireIndex = this.interestingEvents.findIndex(
+        event => event.label?.includes("LA Wildfires")
+      );
+      
+      if (laWildfireIndex !== -1) {
+        // Set the radio to select this event
+        this.radio = laWildfireIndex;
+        // Make sure extended range is on
+        this.showExtendedRange = true;
+      }
+    },
     
   },
 
