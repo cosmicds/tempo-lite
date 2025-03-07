@@ -435,7 +435,7 @@
                 />
                 <info-button>
                   <p>
-                    If data is available, show the extended range of NO<sub>2</sub> values.
+                    If data is available, show map with extended range of NO<sub>2</sub> values.
                   </p>
                 </info-button>
               </div>
