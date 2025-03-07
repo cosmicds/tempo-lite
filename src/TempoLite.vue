@@ -181,7 +181,6 @@
       </a>
 
       <h1 id="title">What is in the Air You Breathe?</h1>
-      <a href="#extreme-events" ><code>#extreme-events</code></a>
       <!-- </div> -->
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
         <ul class="snackbar-alert-ul">
