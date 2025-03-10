@@ -1,8 +1,8 @@
 export default [
   {
-    date: "2025-01-21",
+    date: "2025-02-02",
     html:
-      'For the LA fires beginning Jan 8th, we have added the option to view the data with an extended NO<sub>2</sub> range. Add (or click) <a href="#extreme-events" ><code>#extreme-events</code></a> to the url to view these features. A button will appear on the map to toggle between the standard and extended range.',
+      'During the LA fires that began on Jan 7th, NO<sub>2</sub> levels exceeded the default range displayed on our maps. For Jan 7 - Feb 2, 2025, we added an option to use an extended range of NO<sub>2</sub> values. For those dates, a button appears on the map to toggle between the standard and extended range.',
       
   },
   {

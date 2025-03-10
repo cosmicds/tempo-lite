@@ -10,8 +10,7 @@ export const interestingEvents: InterestingEvent[] = [
     hasFeature: true,
     info: `
     <p> 
-      Beginning on January 7, 2025, a series of wildfires broke out 
-      in the Los Angeles area. In addition to the devastating damage caused by the fires, large amounts of particulate matter, NO<sub>2</sub>, and other pollutants were released into the air.
+      Beginning on January 7, 2025, a series of wildfires broke out in the Los Angeles area. In addition to the devastating damage caused by the fires, large amounts of particulate matter, NO<sub>2</sub>, and other pollutants were released into the air.
     </p>
     <p>
       The TEMPO instrument can detect the NO<sub>2</sub> plumes from these fires,
@@ -19,10 +18,9 @@ export const interestingEvents: InterestingEvent[] = [
     </p>
     <p>
       Compare levels of NO<sub>2</sub> before, during, and after the fires. 
-      Click <a href="#extreme-events" ><code>#extreme-events</code></a> to view the data with an extended range of NO<sub>2</sub> values displayed.
     </p>
     <p>
-      Extended range images are available from Jan 7 - Feb 2, 2025 for this event
+      During the fires, NO<sub>2</sub> levels exceeded the default range displayed on our maps. For Jan 7 - Feb 2, 2025, we added an option to use an extended range of NO<sub>2</sub> values. For those dates, a button appears on the map to toggle between the standard and extended range.
     </p>
     `,
     locations: [
