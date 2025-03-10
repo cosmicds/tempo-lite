@@ -1434,8 +1434,8 @@ export default defineComponent({
         }
         const url = new URL(location.origin);
         const searchParams = new URLSearchParams(state);
-        const hash = window.location.hash;
-        url.hash = hash;
+        // const hash = window.location.hash;
+        // url.hash = hash;
         url.pathname = location.pathname;
         url.search = searchParams.toString();
         this.currentUrl = url.toString();
