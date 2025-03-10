@@ -1422,7 +1422,7 @@ export default defineComponent({
             lon: `${center.lng.toFixed(4)}`,
             zoom: `${this.map.getZoom()}`,
             t: `${this.timestamp}`,
-            extendedRange: `${this.showExtendedRange}`
+            // extendedRange: `${this.showExtendedRange}`
           };
         } else {
           state = {
@@ -1433,13 +1433,13 @@ export default defineComponent({
           };
         }
         const url = new URL(location.origin);
+        url.pathname = location.pathname;
+        window.history.replaceState(null,'',url);
         const searchParams = new URLSearchParams(state);
         // const hash = window.location.hash;
         // url.hash = hash;
-        url.pathname = location.pathname;
         url.search = searchParams.toString();
         this.currentUrl = url.toString();
-        // window.history.replaceState(null,'',url);
 
       }
     },
