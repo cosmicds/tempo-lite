@@ -424,6 +424,21 @@
                   </p>
                 </info-button>
               </div>
+                <div v-if="showExtendedRangeFeatures && extendedRangeAvailable" class="d-flex flex-row align-center justify-space-between">
+                  <v-checkbox
+                  :disabled="!extendedRangeAvailable"
+                  v-model="showExtendedRange"
+                  @keyup.enter="showExtendedRange = !showExtendedRange"
+                  label="Use Extended NO2 range"
+                  color="#c10124"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    If data is available, show map with extended range of NO<sub>2</sub> values.
+                  </p>
+                </info-button>
+              </div>
             </v-card>
           </v-menu>
           <div id="location-and-sharing">
@@ -445,8 +460,8 @@
         </div>
         
         <div id="la-fires">
-          <v-btn v-if="!smallSize && extendedRangeAvailable && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
-            {{ showExtendedRange ? "Showing extended range" : "Use extreme events range" }}
+          <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
+            {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
           </v-btn>
           <v-btn v-if="smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
             🔥
@@ -696,8 +711,8 @@
             hide-details
           />
           <v-checkbox
-            v-if="showExtendedRangeFeatures"
-            :disabled="!showExtendedRangeFeatures"
+            v-if="showExtendedRangeFeatures && extendedRangeAvailable"
+            :disabled="!extendedRangeAvailable"
             v-model="showExtendedRange"
             @keyup.enter="showExtendedRange = !showExtendedRange"
             label="Use Extended NO2 range"
@@ -923,9 +938,9 @@ const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
 
 
-const hash = window.location.hash;
-const showExtendedRangeFeatures = hash.includes("extreme-events");
-const extendedRange = showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
+// const hash = window.location.hash;
+const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
+const extendedRange = window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"; //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
 // set the url to be only the base url, path and hash
 const newUrl = location.origin + location.pathname + location.hash;
 window.history.replaceState({}, '', newUrl);
@@ -1082,7 +1097,14 @@ export default defineComponent({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-    this.updateTimestamps().then(() => {this.timestampsLoaded = true;});
+    this.updateTimestamps().then(() => {this.timestampsLoaded = true;})
+      .then(() => {
+        if (window.location.hash.includes("extreme-events")) {
+          this.$nextTick(() => {
+            this.activateExtremeEvents();
+          });
+        }
+      });
   },
 
   mounted() {
@@ -1385,7 +1407,9 @@ export default defineComponent({
       }
     },
     updateHash() {
-      this.showExtendedRangeFeatures = window.location.hash.includes("extreme-events");
+      if (window.location.hash.includes("extreme-events")) {
+        this.activateExtremeEvents();
+      }
     },
     
     updateURL() {
@@ -1398,7 +1422,7 @@ export default defineComponent({
             lon: `${center.lng.toFixed(4)}`,
             zoom: `${this.map.getZoom()}`,
             t: `${this.timestamp}`,
-            extendedRange: `${this.showExtendedRange}`
+            // extendedRange: `${this.showExtendedRange}`
           };
         } else {
           state = {
@@ -1409,13 +1433,13 @@ export default defineComponent({
           };
         }
         const url = new URL(location.origin);
-        const searchParams = new URLSearchParams(state);
-        const hash = window.location.hash;
-        url.hash = hash;
         url.pathname = location.pathname;
+        window.history.replaceState(null,'',url);
+        const searchParams = new URLSearchParams(state);
+        // const hash = window.location.hash;
+        // url.hash = hash;
         url.search = searchParams.toString();
         this.currentUrl = url.toString();
-        // window.history.replaceState(null,'',url);
 
       }
     },
@@ -1666,7 +1690,8 @@ export default defineComponent({
     
     goToLA() {
       this.showLADialog = false;
-      const event = this.interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
+      const event = this.interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8-31, 2025)');
+      console.log('gotola', event);
       if (event !== undefined && this.map ) {
         const loi = event[0].locations;
         this.map.setView(loi[0].latlng, loi[0].zoom);
@@ -1675,7 +1700,21 @@ export default defineComponent({
     
     activateLAViewer() {
       this.showLADialog = true;
-    }
+    },
+    
+    activateExtremeEvents() {
+      // Find the LA Wildfires event
+      const laWildfireIndex = this.interestingEvents.findIndex(
+        event => event.label?.includes("LA Wildfires")
+      );
+      
+      if (laWildfireIndex !== -1) {
+        // Set the radio to select this event
+        this.radio = laWildfireIndex;
+        // Make sure extended range is on
+        this.showExtendedRange = true;
+      }
+    },
     
   },
 
@@ -2773,7 +2812,8 @@ div.callout-wrapper {
   max-width: 20ch;
   
   .v-btn {
-    height: calc(var(--v-btn-height) + 8px);
+    height: fit-content; // calc(var(--v-btn-height) + 18px);
+    padding-block: 5px;
   }
   
   .v-btn__content {

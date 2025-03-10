@@ -75,6 +75,8 @@ export default defineComponent({
 .v-card-info-text {
   font-size: 1em;
   line-height: 1.5em;
+  padding-block: 1em;
+  padding-inline: 1.5em;
   
   p {
     margin-block: 0.5em;
@@ -88,12 +90,16 @@ export default defineComponent({
 
 .info-button-close-icon {
   position: relative;
-  height: 0.5em;
+  height: 1em;
 }
 
 .info-button-close-icon__icon {
-  position:absolute !important;
-  right:0 !important;
+  /* position:absolute !important;
+  right:0 !important; */
+  float:right;
+  right: 1em;
+  top: 1em;
+
   cursor:pointer;
   
   padding:1em !important;

@@ -1,20 +1,26 @@
 import { InterestingEvent } from "./types";
 
-export const interestingEvents = [
+export const interestingEvents: InterestingEvent[] = [
   {
     date: new Date(2025, 0, 8),
-    endDate: new Date(2025, 0, 20),
+    endDate: new Date(2025, 0, 31),
     dateString: "Jan 8",
-    label: "LA Wildfires (Jan 8, 2025)",
-    highlighted: true,
+    label: "LA Wildfires (Jan 8-31, 2025)",
+    highlighted: false,
+    hasFeature: true,
     info: `
     <p> 
-      Beginning on January 7, 2025, a series of wildfires broke out 
-      in the Los Angeles area. In addition to the devastating damage caused by the fires, large amounts of particulate matter, NO<sub>2</sub>, and other pollutants were released into the air.
+      Beginning on January 7, 2025, a series of wildfires broke out in the Los Angeles area. In addition to the devastating damage caused by the fires, large amounts of particulate matter, NO<sub>2</sub>, and other pollutants were released into the air.
     </p>
     <p>
       The TEMPO instrument can detect the NO<sub>2</sub> plumes from these fires,
       helping scientists and the public to understand the extent of the pollution and how it moves through the air. 
+    </p>
+    <p>
+      Compare levels of NO<sub>2</sub> before, during, and after the fires. 
+    </p>
+    <p>
+      During the fires, NO<sub>2</sub> levels far exceeded the default range displayed on our maps. For Jan 7 - Feb 2, 2025, we added an option to use an extended range of NO<sub>2</sub> values. For those dates, a button appears on the map to toggle between the standard and extended range.
     </p>
     `,
     locations: [
@@ -136,4 +142,4 @@ export const interestingEvents = [
     ],
   },
 
-] as InterestingEvent[];
+];
