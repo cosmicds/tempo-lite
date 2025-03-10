@@ -1344,11 +1344,12 @@ function updateURL() {
     }
     const url = new URL(location.origin);
     const searchParams = new URLSearchParams(stateObj ?? {});
-    const hash = window.location.hash;
-    url.hash = hash;
+    // const hash = window.location.hash;
+    // url.hash = hash;
     url.pathname = location.pathname;
     url.search = searchParams.toString();
     currentUrl.value = url.toString();
+    // window.history.replaceState(stateObj, '', url);
   }
 }
   
