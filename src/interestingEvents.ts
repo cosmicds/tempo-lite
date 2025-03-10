@@ -20,7 +20,7 @@ export const interestingEvents: InterestingEvent[] = [
       Compare levels of NO<sub>2</sub> before, during, and after the fires. 
     </p>
     <p>
-      During the fires, NO<sub>2</sub> levels exceeded the default range displayed on our maps. For Jan 7 - Feb 2, 2025, we added an option to use an extended range of NO<sub>2</sub> values. For those dates, a button appears on the map to toggle between the standard and extended range.
+      During the fires, NO<sub>2</sub> levels far exceeded the default range displayed on our maps. For Jan 7 - Feb 2, 2025, we added an option to use an extended range of NO<sub>2</sub> values. For those dates, a button appears on the map to toggle between the standard and extended range.
     </p>
     `,
     locations: [
