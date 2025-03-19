@@ -998,8 +998,8 @@ const radio = ref<number | null>(null);
 const sublocationRadio = ref<number | null>(null);
 const touchscreen = ref(false);
 const playInterval = ref<Timeout | null>(null);
-const map = ref<Map | null>(null);
-const basemap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
+// const map = ref<Map | null>(null);
+// const basemap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
 // const interestingEvents = ref(interestingEvents);
 const customImageUrl = ref("");
 const selectedTimezone = ref("US/Eastern");
@@ -1054,17 +1054,17 @@ updateTimestamps().then(() => {timestampsLoaded.value = true;})
     }
   });
 // },
-  
+
+import { useLeafletMap } from "./composables/useLeafletMap";
+
+const { map, setView } = useLeafletMap("map", initState.value);
+
 onMounted(() => {
   window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
-  map.value = L.map("map", { zoomControl: false }).setView(initState.value.loc, initState.value.zoom, {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    crs: L.CRS.EPSG4326
-  });
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
+  
+  
+  
   const zoomHome = L.Control.zoomHome({homeCoordinates: homeState.value.loc, homeZoom: homeState.value.zoom});
   const originalZH = zoomHome._zoomHome.bind(zoomHome);
   zoomHome._zoomHome = (_e: Event) => {
@@ -1076,33 +1076,7 @@ onMounted(() => {
     }
   };
   zoomHome.addTo(map.value);
-  addCoastlines();
-    
-  // this.basemap = new L.TileLayer.WMS('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
-  //   crs: L.CRS.EPSG4326
-  // }).addTo(this.map as Map);
-    
-  const labelPane = map.value.createPane("labels");
-  labelPane.style.zIndex = "650";
-  labelPane.style.pointerEvents = "none";
-  basemap.value = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png', {
-    minZoom: 0,
-    maxZoom: 20,
-    attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    pane: 'labels'
-  }).addTo(map.value as Map);
-    
-  // L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
-  //   attribution: 'OpenStreetMap, CartoDB',
-  //   pane: 'labels'
-  // }).addTo(this.map as Map);
-    
-  L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png', {
-    minZoom: 0,
-    maxZoom: 20,
-    attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    pane: 'labels'
-  }).addTo(map.value as Map);
+  
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length-1];
   imageOverlay.setUrl(imageUrl.value).addTo(map.value as Map);
   cloudOverlay.setUrl(cloudUrl.value).addTo(map.value as Map);
@@ -1110,8 +1084,9 @@ onMounted(() => {
   if (showFieldOfRegard.value) {
     fieldOfRegardLayer.addTo(map.value as Map);
   }
-  map.value.on('moveend', updateURL);
-  map.value.on('zoomend', updateURL);
+
+  // map.value.on('moveend', updateURL);
+  // map.value.on('zoomend', updateURL);
 });
   
 onBeforeUnmount(() => {
@@ -1380,15 +1355,7 @@ function selectSheet(name: SheetType) {
   }
 }
   
-function addCoastlines() {
-  fetch("coastlines.geojson")
-    .then(response => response.json())
-    .then(data => {
-      L.geoJson(data, {
-        style: { color: "black", weight: 1, opacity: 0.8 }
-      }).addTo(map.value as Map);
-    });
-}
+
   
 async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
   return geocodingInfoForSearch(searchText, {
@@ -1399,7 +1366,7 @@ async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBox
   
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
-  map.value?.setView([40.044, -98.789], 4);
+  setView([40.044, -98.789], 4);
 }
   
 function play() {
