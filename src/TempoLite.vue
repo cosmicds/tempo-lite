@@ -926,6 +926,7 @@ const {
   maxIndex,
   minIndex,
   uniqueDays,
+  uniqueDaysIndex,
   setNearestDate,
   moveBackwardOneDay,
   moveForwardOneDay,
