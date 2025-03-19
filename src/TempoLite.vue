@@ -50,7 +50,7 @@
                     @click="introSlide++"
                     @keyup.enter="introSlide++"
                     :color="accentColor"
-                    :density="xSmallSize ? 'compact' : 'default'"
+                    :density="display.smAndDown ? 'compact' : 'default'"
                     size="x-large"
                     variant="elevated"
                     rounded="lg"
@@ -2399,7 +2399,8 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
   }
   
   .v-selection-control {
-    // height: fit-content;
+    z-index: auto;
+    
   }
   
   .v-radio-group .v-input__details {
