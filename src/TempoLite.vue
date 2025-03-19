@@ -916,8 +916,20 @@ const fosterTimestamps = ref<number[]>([
   1711668240000,
 ]);
   
-// combine the timestamps from the two sources
+import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 const timestamps = ref<number[]>(fosterTimestamps.value);
+const { 
+  timeIndex,
+  timestamp,
+  date,
+  singleDateSelected,
+  maxIndex,
+  minIndex,
+  uniqueDays,
+  setNearestDate,
+  moveBackwardOneDay,
+  moveForwardOneDay,
+  nearestDateIndex } = useUniqueTimeSelection(timestamps);
   
 const urlParams = new URLSearchParams(window.location.search);
 const hideIntro = urlParams.get("hideintro") === "true";
@@ -1004,9 +1016,7 @@ const playInterval = ref<Timeout | null>(null);
 const customImageUrl = ref("");
 const selectedTimezone = ref("US/Eastern");
   
-const timeIndex = ref(0);
-const minIndex = ref(0);
-const maxIndex = ref(timestamps.value.length - 1);
+
   
 const playing = ref(false);
 const imageOverlay = new L.ImageOverlay("", novDecBounds, {
@@ -1016,7 +1026,7 @@ const imageOverlay = new L.ImageOverlay("", novDecBounds, {
 const opacity = ref(0.9);
 const timestampsLoaded = ref(false);
 const preload = ref(true);
-const singleDateSelected = ref(new Date());
+
 const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
 const showControls = ref(false);
@@ -1064,7 +1074,8 @@ onMounted(() => {
   showSplashScreen.value = false;
   
   
-  
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   const zoomHome = L.Control.zoomHome({homeCoordinates: homeState.value.loc, homeZoom: homeState.value.zoom});
   const originalZH = zoomHome._zoomHome.bind(zoomHome);
   zoomHome._zoomHome = (_e: Event) => {
@@ -1125,13 +1136,7 @@ const showTextSheet = computed({
   
   
   
-const timestamp = computed(() => {
-  return timestamps.value[timeIndex.value];
-});
-  
-const date = computed(() => {
-  return new Date(timestamp.value);
-});
+
   
 const datesOfInterest = computed(() => {
   return interestingEvents.map(event => event.date);
@@ -1253,13 +1258,7 @@ const imageBounds = computed(() => {
   }
 });
   
-const uniqueDays = computed(() => {
-  const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
-  const easternDates = timestamps.value.map(ts => new Date(ts + offset(new Date(ts))));
-  const days = easternDates.map(date => (new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).getTime());
-  const unique = Array.from(new Set(days));
-  return unique.map(ts => new Date(ts));
-});
+
   
 const highresAvailable = computed(() => {
   return newTimestamps.value.includes(timestamp.value);
@@ -1450,44 +1449,8 @@ function getTempoDataUrl(timestamp: number): string {
   return '';
 }
   
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function nearestDate(date: Date): number {
-  const onedayinms = 1000 * 60 * 60 * 24;
-  const time = date.getTime();
-  const timestamp = timestamps.value.find(ts => ((ts - time) < onedayinms) && (ts - time) >= 0);
-  if (timestamp !== undefined) {
-    return timestamp;
-  } else {
-    // Return a default value or handle the error appropriately
-    console.warn("No matching timestamp found, returning default value.");
-    return timestamps.value[0];
-  }
-}
-  
-function nearestDateIndex(date: Date): number {
-  const onedayinms = 1000 * 60 * 60 * 24;
-  const timestamp = date.getTime();
-  const index = timestamps.value.findIndex(ts => ((ts - timestamp) < onedayinms) && (ts - timestamp) >= 0);
-  if (index === null) {
-    console.log("No matching timestamp found, returning default index.");
-  }
-  return index ?? 0;
-}
-  
-function setNearestDate(date: number | null) {
-  if (date == null) {
-    return;
-  }
-  const onedayinms = 1000 * 60 * 60 * 24;
-  const mod = timestamps.value.filter(ts => ((ts - date) < onedayinms) && (ts - date) > 0);
-  // set minIndex and maxIndex to the first and last index of the mod array
-  minIndex.value = timestamps.value.indexOf(mod[0]);
-  maxIndex.value = timestamps.value.indexOf(mod[mod.length - 1]);
-  if (timeIndex.value < minIndex.value || timeIndex.value > maxIndex.value) {
-    timeIndex.value = minIndex.value;
-  }
-  imagePreload();
-}
+
+
   
 function updateFieldOfRegard() {
   if (date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
@@ -1521,26 +1484,8 @@ function imagePreload() {
   });
 }
   
-function getUniqueDayIndex(date: Date): number {
-  return uniqueDays.value.findIndex(day => day.getTime() === date.getTime());
-}
-  
-function moveBackwardOneDay() {
-  radio.value = null;
-  singleDateSelected.value = uniqueDays.value[getUniqueDayIndex(singleDateSelected.value) - 1];
-}
-  
-function moveForwardOneDay() {
-  radio.value = null;
-  singleDateSelected.value = uniqueDays.value[getUniqueDayIndex(singleDateSelected.value) + 1];
-}
-  
-function uniqueDaysIndex(ts: number) {
-  const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
-  let date = new Date(ts + offset(new Date(ts)));
-  date = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-  return uniqueDays.value.map(e => e.getTime()).indexOf(date.getTime());
-}
+
+
   
 function goToLocationOfInterst(index: number, subindex: number) {
   if (index < 0 || index >= locationsOfInterest.value.length) {
@@ -1709,6 +1654,7 @@ watch(() => singleDateSelected.value, (value: Date) => {
     const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
     radio.value = index < 0 ? null : index;
   }
+  imagePreload();
 });
   
 watch(() => sublocationRadio.value, (value: number | null) => {
