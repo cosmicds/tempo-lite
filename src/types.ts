@@ -16,3 +16,24 @@ export interface InterestingEvent {
     highlighted?: boolean;
     hasFeature?: boolean;
   }
+  
+import L from 'leaflet';
+export class LatLng extends L.LatLng {
+  constructor(lat: number, lng: number) {
+    super(lat, lng);
+  }
+
+  toLeaflet(): L.LatLng {
+    return this;
+  }
+  
+}
+export class LatLngBounds extends L.LatLngBounds {
+  constructor(sw: L.LatLng, ne: L.LatLng) {
+    super(sw, ne);
+  }
+
+  toLeaflet(): L.LatLngBounds {
+    return this;
+  }
+}

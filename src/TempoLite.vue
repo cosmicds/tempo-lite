@@ -1014,19 +1014,15 @@ const playInterval = ref<Timeout | null>(null);
 // const map = ref<Map | null>(null);
 // const basemap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
 // const interestingEvents = ref(interestingEvents);
-const customImageUrl = ref("");
+
 const selectedTimezone = ref("US/Eastern");
   
 
   
 const playing = ref(false);
-const imageOverlay = new L.ImageOverlay("", novDecBounds, {
-  opacity: 0.9,
-  interactive: false,
-});
-const opacity = ref(0.9);
+
 const timestampsLoaded = ref(false);
-const preload = ref(true);
+
 
 const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
@@ -1036,19 +1032,13 @@ const showCredits = ref(false);
 const showUserGuide = ref(false);
 const showAboutData = ref(false);
 const loadedImagesProgress = ref(0);
-const useHighRes = ref(false);
-const cloudOverlay = new L.ImageOverlay("", novDecBounds, {
-  opacity: 0.9,
-  interactive: false,
-});
-const showClouds = ref(false);
+
 const showLocationMarker = ref(true);
 const locationMarker = ref<L.Marker | null>(null);
 const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
 const showLADialog = ref(false);
-const extendedRangeTimestamps = ref<number[]>([]);
-const showExtendedRange = ref(extendedRange.value);
+
   
   
 // created() {
@@ -1065,6 +1055,103 @@ updateTimestamps().then(() => {timestampsLoaded.value = true;})
     }
   });
 // },
+
+
+
+const imageName = computed(() => {
+  return getTempoFilename(date.value);
+});
+  
+const imageUrl = computed(() => {
+  if (customImageUrl.value) {
+    return customImageUrl.value;
+  }
+  const url = getTempoDataUrl(timestamp.value);
+  return url + imageName.value;
+});
+
+const showClouds = ref(false);
+const cloudUrl = computed(() => {
+  if (!showClouds.value) {
+    return '';
+  }
+  
+  if (cloudTimestamps.value.includes(timestamp.value)) {
+    return getCloudFilename(date.value);
+  }
+  return '';
+});
+
+import { useImageOverlay } from "./composables/useLeafletImageOverlay";
+
+/** Image Options */
+const extendedRangeTimestamps = ref<number[]>([]);
+const showExtendedRange = ref(extendedRange.value);
+const useHighRes = ref(false);
+
+
+const opacity = ref(0.9);
+const preload = ref(true);
+
+const newBounds = computed(() => {
+  return new L.LatLngBounds(
+    new L.LatLng(bounds.value[1], bounds.value[0]),
+    new L.LatLng(bounds.value[3], bounds.value[2])
+  );
+});
+  
+const imageBounds = computed(() => {
+  if (date.value.getUTCFullYear() === 2023) {
+    return novDecBounds;
+  } else if (date.value.getUTCFullYear() === 2024 && date.value.getUTCMonth() === 2) {
+    return marchBounds;
+  } else {
+    return newBounds.value;
+  }
+});
+
+
+const customImageUrl = ref("");
+const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds);
+const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds);
+  
+const cloudDataAvailable = computed(() => {
+  return cloudTimestamps.value.includes(timestamp.value);
+});
+  
+const whichDataSet = computed(() => {
+  if (fosterTimestamps.value.includes(timestamp.value)) {
+    return 'TEMPO-lite';
+  }
+    
+  if (erdTimestamps.value.includes(timestamp.value)) {
+    return 'Early Release (V01)';
+  }
+    
+  if (newTimestamps.value.includes(timestamp.value)) {
+    return 'Level 3 (V03)';
+  }
+    
+  return 'Unknown';
+});
+  
+
+  
+
+  
+const highresAvailable = computed(() => {
+  return newTimestamps.value.includes(timestamp.value);
+});
+  
+const extendedRangeAvailable = computed(() => {
+  return extendedRangeTimestamps.value.includes(timestamp.value);
+});
+  
+const showingExtendedRange = computed(() => {
+  return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
+});
+  
+
 
 import { useLeafletMap } from "./composables/useLeafletMap";
 
@@ -1090,8 +1177,9 @@ onMounted(() => {
   zoomHome.addTo(map.value);
   
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length-1];
-  imageOverlay.setUrl(imageUrl.value).addTo(map.value as Map);
-  cloudOverlay.setUrl(cloudUrl.value).addTo(map.value as Map);
+  imageOverlay.addTo(map.value as Map);
+  cloudOverlay.addTo(map.value as Map);
+  
   updateFieldOfRegard();
   if (showFieldOfRegard.value) {
     fieldOfRegardLayer.addTo(map.value as Map);
@@ -1199,80 +1287,7 @@ const thumbLabel = computed(() => {
   return `${date.value.getUTCMonth()+1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
 });
   
-const imageName = computed(() => {
-  return getTempoFilename(date.value);
-});
-  
-const imageUrl = computed(() => {
-  if (customImageUrl.value) {
-    return customImageUrl.value;
-  }
-  const url = getTempoDataUrl(timestamp.value);
-  return url + imageName.value;
-});
-  
-const cloudUrl = computed(() => {
-  if (!showClouds.value) {
-    return '';
-  }
-  
-  if (cloudTimestamps.value.includes(timestamp.value)) {
-    return getCloudFilename(date.value);
-  }
-  return '';
-});
-  
-const cloudDataAvailable = computed(() => {
-  return cloudTimestamps.value.includes(timestamp.value);
-});
-  
-const whichDataSet = computed(() => {
-  if (fosterTimestamps.value.includes(timestamp.value)) {
-    return 'TEMPO-lite';
-  }
-    
-  if (erdTimestamps.value.includes(timestamp.value)) {
-    return 'Early Release (V01)';
-  }
-    
-  if (newTimestamps.value.includes(timestamp.value)) {
-    return 'Level 3 (V03)';
-  }
-    
-  return 'Unknown';
-});
-  
-const newBounds = computed(() => {
-  return new L.LatLngBounds(
-    new L.LatLng(bounds.value[1], bounds.value[0]),
-    new L.LatLng(bounds.value[3], bounds.value[2])
-  );
-});
-  
-const imageBounds = computed(() => {
-  if (date.value.getUTCFullYear() === 2023) {
-    return novDecBounds;
-  } else if (date.value.getUTCFullYear() === 2024 && date.value.getUTCMonth() === 2) {
-    return marchBounds;
-  } else {
-    return newBounds.value;
-  }
-});
-  
 
-  
-const highresAvailable = computed(() => {
-  return newTimestamps.value.includes(timestamp.value);
-});
-  
-const extendedRangeAvailable = computed(() => {
-  return extendedRangeTimestamps.value.includes(timestamp.value);
-});
-  
-const showingExtendedRange = computed(() => {
-  return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
-});
-  
 function setMarker(latlng: L.LatLngExpression) {
   console.log(L.Icon.Default.prototype.options);
   const icon = L.icon({
@@ -1390,10 +1405,6 @@ function pause() {
   }
 }
   
-function updateBounds() {
-  imageOverlay.setBounds(imageBounds.value);
-  cloudOverlay.setBounds(imageBounds.value);
-}
   
 // preloadImages(images: string[]) {
 //   const promises = images.map(src => loadImage(src));
@@ -1586,14 +1597,12 @@ watch(() => playing.value, (val: boolean) => {
   }
 });
   
-watch(() => imageUrl.value, (url: string) => {
-  updateBounds();
-  imageOverlay.setUrl(url);
+watch(() => imageUrl.value, (_url: string) => {
   updateFieldOfRegard();
 });
   
-watch(() => cloudUrl.value, (url: string) => {
-  cloudOverlay.setUrl(url);
+watch(() => cloudUrl.value, (_url: string) => {
+  // nothing to do here.
 });
   
 watch(() => useHighRes.value, () => {
@@ -1664,10 +1673,7 @@ watch(() => sublocationRadio.value, (value: number | null) => {
   }
 });
   
-watch(() => opacity.value, (value: number) => {
-  imageOverlay.setOpacity(value);
-  cloudOverlay.setOpacity(value);
-});
+
   
 watch(() => showChanges.value, (_value: boolean) => {
   if (showNotice.value) {
