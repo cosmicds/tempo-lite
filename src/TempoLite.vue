@@ -1347,6 +1347,7 @@ function updateURL() {
     // const hash = window.location.hash;
     // url.hash = hash;
     url.pathname = location.pathname;
+    window.history.replaceState(null, '', url.toString());
     url.search = searchParams.toString();
     currentUrl.value = url.toString();
     // window.history.replaceState(stateObj, '', url);
