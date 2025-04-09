@@ -1,4 +1,4 @@
-import {ref, Ref, watch} from 'vue';
+import {ref, Ref, watch, isRef} from 'vue';
 import { LatLngBounds } from '../types';
 import L from 'leaflet';
 
@@ -8,9 +8,9 @@ export function useImageOverlay(
   imageBounds: Ref<LatLngBounds | L.LatLngBounds>
 ) {
   
-  imageUrl = ref(imageUrl);
-  opacity = ref(opacity);
-  imageBounds = ref(imageBounds);
+  imageUrl = isRef(imageUrl) ? imageUrl : ref(imageUrl);
+  opacity = isRef(opacity) ? opacity : ref(opacity);
+  imageBounds = isRef(imageBounds) ? imageBounds : ref(imageBounds);
   
   const overlay = ref(new L.ImageOverlay(imageUrl.value, imageBounds.value, {
     opacity: opacity.value,

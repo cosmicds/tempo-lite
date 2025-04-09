@@ -33,9 +33,13 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
     }
 
     const mod = getOneDaysTimestamps(new Date(date));
-    minIndex.value = timestamps.value.indexOf(mod[0]);
-    maxIndex.value = timestamps.value.indexOf(mod[mod.length - 1]);
-    timeIndex.value = minIndex.value;
+    if (mod.length > 0) {
+      minIndex.value = timestamps.value.indexOf(mod[0]);
+      maxIndex.value = timestamps.value.indexOf(mod[mod.length - 1]);
+      timeIndex.value = minIndex.value;
+    } else {
+      console.warn("No timestamps found for the given date.");
+    }
   }
   
   const timestamp = computed(() => {
@@ -72,11 +76,17 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   }
   
   function moveBackwardOneDay() {
-    singleDateSelected.value = uniqueDays.value[getUniqueDayIndex(singleDateSelected.value) - 1];
+    const currentIndex = getUniqueDayIndex(singleDateSelected.value);
+    if (currentIndex > 0) {
+      singleDateSelected.value = uniqueDays.value[currentIndex - 1];
+    }
   }
-  
+
   function moveForwardOneDay() {
-    singleDateSelected.value = uniqueDays.value[getUniqueDayIndex(singleDateSelected.value) + 1];
+    const nextIndex = getUniqueDayIndex(singleDateSelected.value) + 1;
+    if (nextIndex < uniqueDays.value.length) {
+      singleDateSelected.value = uniqueDays.value[nextIndex];
+    }
   }
   
   function nearestDate(date: Date): number {
@@ -93,10 +103,11 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   function nearestDateIndex(date: Date): number {
     const timestamp = date.getTime();
     const index = timestamps.value.findIndex(ts => ((ts - timestamp) < ONEDAYMS) && (ts - timestamp) >= 0);
-    if (index === null) {
+    if (index < 0) {
       console.log("No matching timestamp found, returning default index.");
+      return 0;
     }
-    return index ?? 0;
+    return index;
   }
   
   watch(singleDateSelected, (value) => {

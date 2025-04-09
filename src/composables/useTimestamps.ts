@@ -16,7 +16,7 @@ export function useTimestamps(manifestUrl: string, dataUrl: string, lowResDataUr
     const url = `${manifestUrl}?version=${Date.now()}`;
     return fetch(url)
       .then((response) => response.json())
-      .catch(() => fetch(manifestUrl,).then((response) => response.json()));
+      .catch(() => fetch(manifestUrl).then((response) => response.json()));
   }
 
   async function loadTimestamps() {

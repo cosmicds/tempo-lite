@@ -11,11 +11,11 @@ export const currentUrl = ref(new URL(window.location.href)); // Store the curre
 
 
 /* Store a reference in the URL, and watch the ref for changes */
-export function storeRefInUrl<T>(refValue: Ref<T>, key: string, shareOnly: boolean = false, transorm?: (T) => string) {
+export function storeRefInUrl<T>(refValue: Ref<T>, key: string, shareOnly: boolean = false, transform?: (T) => string) {
   
   function stringify(value: T): string {
-    if (transorm) {
-      return transorm(value);
+    if (transform) {
+      return transform(value);
     }
     return `${value}`;
   }
