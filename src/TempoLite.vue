@@ -990,19 +990,31 @@ const {
   nearestDateIndex } = useUniqueTimeSelection(timestamps);
 
 const timestampsLoaded = ref(false);
+const fosterTimestampsSet = ref(new Set(fosterTimestamps.value));
+const erdTimestampsSet = ref(new Set());
+const newTimestampsSet = ref(new Set());
+const cloudTimestampsSet = ref(new Set());
+const extendedRangeTimestampsSet = ref(new Set());
+const timestampsSet = ref(new Set(fosterTimestamps.value));
+
 async function updateTimestamps() {
   getExtendedRangeTimestamps().then(ts => {
     extendedRangeTimestamps.value = ts;
+    extendedRangeTimestampsSet.value = new Set(ts);
   });
   getTimestamps().then((ts) => {
     erdTimestamps.value = ts.early_release;
+    erdTimestampsSet.value = new Set(ts.early_release);
     newTimestamps.value = ts.released;
+    newTimestampsSet.value = new Set(ts.released);
     timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+    timestampsSet.value = new Set(timestamps.value);
     cloudTimestamps.value = ts.clouds;
+    cloudTimestampsSet.value = new Set(ts.clouds);
   });
   return ;
 }
-updateTimestamps().then(() => {timestampsLoaded.value = true;});
+
 updateTimestamps().then(() => {timestampsLoaded.value = true;})
   .then(() => {
     if (window.location.hash.includes("extreme-events")) {
@@ -1109,7 +1121,7 @@ const cloudUrl = computed(() => {
     return '';
   }
   
-  if (cloudTimestamps.value.includes(timestamp.value)) {
+  if (cloudTimestampsSet.value.has(timestamp.value)) {
     return getCloudFilename(date.value);
   }
   return '';
@@ -1125,19 +1137,19 @@ const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds);
 const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds);
   
 const cloudDataAvailable = computed(() => {
-  return cloudTimestamps.value.includes(timestamp.value);
+  return cloudTimestampsSet.value.has(timestamp.value);
 });
   
 const whichDataSet = computed(() => {
-  if (fosterTimestamps.value.includes(timestamp.value)) {
+  if (fosterTimestampsSet.value.has(timestamp.value)) {
     return 'TEMPO-lite';
   }
     
-  if (erdTimestamps.value.includes(timestamp.value)) {
+  if (erdTimestampsSet.value.has(timestamp.value)) {
     return 'Early Release (V01)';
   }
     
-  if (newTimestamps.value.includes(timestamp.value)) {
+  if (newTimestampsSet.value.has(timestamp.value)) {
     return 'Level 3 (V03)';
   }
     
@@ -1149,11 +1161,11 @@ const whichDataSet = computed(() => {
 
   
 const highresAvailable = computed(() => {
-  return newTimestamps.value.includes(timestamp.value);
+  return newTimestampsSet.value.has(timestamp.value);
 });
   
 const extendedRangeAvailable = computed(() => {
-  return extendedRangeTimestamps.value.includes(timestamp.value);
+  return extendedRangeTimestampsSet.value.has(timestamp.value);
 });
   
 const showingExtendedRange = computed(() => {
@@ -1424,21 +1436,21 @@ function getTempoFilename(date: Date): string {
 }
   
 function getTempoDataUrl(timestamp: number): string {
-  if (showExtendedRange.value && extendedRangeTimestamps.value.includes(timestamp)) {
+  if (showExtendedRange.value && extendedRangeTimestampsSet.value.has(timestamp)) {
     if (useHighRes.value) {
       return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/';
     }
     return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/resized_images/';
   }
-  if (fosterTimestamps.value.includes(timestamp)) {
+  if (fosterTimestampsSet.value.has(timestamp)) {
     return 'https://tempo-images-bucket.s3.amazonaws.com/tempo-lite/';
   }
     
-  if (erdTimestamps.value.includes(timestamp)) {
+  if (erdTimestampsSet.value.has(timestamp)) {
     return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/early_release/images/';
   }
     
-  if (newTimestamps.value.includes(timestamp)) {
+  if (newTimestampsSet.value.has(timestamp)) {
     if (useHighRes.value) {
       return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/';
     }
@@ -1468,7 +1480,7 @@ function imagePreload() {
   // console.log('preloading images for ', this.thumbLabel);
   const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1);
   const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
-  const cloudImages = times.filter(ts => cloudTimestamps.value.includes(ts)).map(ts => getCloudFilename(new Date(ts)));
+  const cloudImages = times.filter(ts => cloudTimestampsSet.value.has(ts)).map(ts => getCloudFilename(new Date(ts)));
   images.push(...cloudImages);
   const promises = _preloadImages(images);
   let loaded = 0;

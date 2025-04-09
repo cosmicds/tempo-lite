@@ -8,7 +8,9 @@ interface Manifest {
 
 export function useTimestamps(manifestUrl: string, dataUrl: string, lowResDataUrl: string) {
   const timestamps = ref<number[]>([]);
+  const timestampSet = ref<Set<number>>(new Set());
   const cloudTimestamps = ref<number[]>([]);
+  const cloudTimestampSet = ref<Set<number>>(new Set());
 
   async function fetchManifest(): Promise<Manifest> {
     const url = `${manifestUrl}?version=${Date.now()}`;
@@ -20,8 +22,10 @@ export function useTimestamps(manifestUrl: string, dataUrl: string, lowResDataUr
   async function loadTimestamps() {
     const manifest = await fetchManifest();
     timestamps.value = manifest.timestamps;
+    timestampSet.value = new Set(manifest.timestamps);
     if (manifest.clouds) {
       cloudTimestamps.value = manifest.clouds;
+      cloudTimestampSet.value = new Set(manifest.clouds);
     }
   }
 
@@ -36,7 +40,7 @@ export function useTimestamps(manifestUrl: string, dataUrl: string, lowResDataUr
   }
 
   function getCloudUrl(timestamp: number, highRes: boolean): string {
-    if (!cloudTimestamps.value.includes(timestamp)) {
+    if (!cloudTimestampSet.value.has(timestamp)) {
       return '';
     }
     const url = highRes ? dataUrl : lowResDataUrl;
