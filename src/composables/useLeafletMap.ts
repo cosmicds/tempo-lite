@@ -8,7 +8,7 @@ export interface InitMapOptions {
   [x: string | number | symbol]: unknown
 }
 
-export function useLeafletMap(id="map", options: InitMapOptions) {
+export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map: Map) => void) {
   
   // this is where our map will be
   const map = ref<Map | null>(null);
@@ -52,6 +52,9 @@ export function useLeafletMap(id="map", options: InitMapOptions) {
     labelmap.value.addTo(map.value as Map);
     
     addCoastlines();
+    if (onReady !== undefined) {
+      onReady(map.value as Map);
+    }
   }
   
   function createMap() {

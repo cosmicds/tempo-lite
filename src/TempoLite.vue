@@ -1176,8 +1176,11 @@ const showingExtendedRange = computed(() => {
   return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
 });
 
-
-const { map, setView } = useLeafletMap("map", initState.value);
+const onMapReady = (map: Map) => {
+  map.on('moveend', updateURL);
+  map.on('zoomend', updateURL);
+};
+const { map, setView } = useLeafletMap("map", initState.value, onMapReady);
 
 onMounted(() => {
   window.addEventListener("hashchange", updateHash);
@@ -1206,9 +1209,7 @@ onMounted(() => {
   if (showFieldOfRegard.value) {
     fieldOfRegardLayer.addTo(map.value as Map);
   }
-
-  // map.value.on('moveend', updateURL);
-  // map.value.on('zoomend', updateURL);
+  
 });
 
 onBeforeUnmount(() => {
@@ -1332,7 +1333,7 @@ function updateURL() {
     window.history.replaceState(null, '', url.toString());
     url.search = searchParams.toString();
     currentUrl.value = url.toString();
-    // window.history.replaceState(stateObj, '', url);
+    window.history.replaceState(stateObj, '', url);
   }
 }
 
