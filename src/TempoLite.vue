@@ -951,27 +951,12 @@ window.history.replaceState({}, '', newUrl);
 const homeLat =  40.044;
 const homeLon =  -98.789;
 const homeZoom =  4;
+
+import { useLeafletBounds } from './composables/useLeafletBounds';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { leafletBounds: imageBounds, boundsArray: bounds } = useLeafletBounds(date);
+
   
-function zpad(n: number, width: number = 2, character: string = "0"): string {
-  return n.toString().padStart(width, character);
-}
-  
-const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
-  
-const novDecBounds = new L.LatLngBounds(
-  new L.LatLng(17.025, -154.975),
-  new L.LatLng(63.975, -24.475)
-);
-  
-const marchBounds = new L.LatLngBounds(
-  new L.LatLng(14.01, -167.99),
-  new L.LatLng(72.99, -13.01)
-);
-  
-const bounds = ref(new L.LatLngBounds(
-  new L.LatLng(14.01, -167.99),
-  new L.LatLng(72.99, -13.01)
-).toBBoxString().split(",").map(parseFloat));
 const fieldOfRegardLayer = L.geoJSON(
     fieldOfRegard as GeoJSON.GeometryCollection,
     {
@@ -1093,22 +1078,6 @@ const useHighRes = ref(false);
 const opacity = ref(0.9);
 const preload = ref(true);
 
-const newBounds = computed(() => {
-  return new L.LatLngBounds(
-    new L.LatLng(bounds.value[1], bounds.value[0]),
-    new L.LatLng(bounds.value[3], bounds.value[2])
-  );
-});
-  
-const imageBounds = computed(() => {
-  if (date.value.getUTCFullYear() === 2023) {
-    return novDecBounds;
-  } else if (date.value.getUTCFullYear() === 2024 && date.value.getUTCMonth() === 2) {
-    return marchBounds;
-  } else {
-    return newBounds.value;
-  }
-});
 
 
 const customImageUrl = ref("");
