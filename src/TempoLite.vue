@@ -1566,7 +1566,7 @@ watch(() => timestamp.value, (_val: number) => {
 });
   
 watch(() => introSlide.value, (val: number) => {
-  inIntro.value = val < 4;
+  inIntro.value = val < 5;
   return;
 });
   
