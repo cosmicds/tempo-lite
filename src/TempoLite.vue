@@ -164,7 +164,7 @@
     id="main-content"
   > 
   <marquee-alert 
-    v-if="smallSize && showExtendedRangeFeatures"
+    v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" 
     timeout="30000"
     message="You can view data with an extend range for the 
             duration of the LA fires. See the 🔥 button on the map"
@@ -463,7 +463,7 @@
           <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
             {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
           </v-btn>
-          <v-btn v-if="smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
+          <v-btn v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
             🔥
           </v-btn>
           <cds-dialog title="Extreme Events" v-model="showLADialog" :color="accentColor2">
@@ -843,6 +843,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useDisplay } from 'vuetify';
+import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import L, { LatLngExpression, Map } from "leaflet";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
@@ -852,12 +853,14 @@ import augustFieldOfRegard from "./assets/august_for.json";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
-  
+import { useLeafletMap } from "./composables/useLeafletMap";
+import { useImageOverlay } from "./composables/useLeafletImageOverlay";
+import { useLeafletBounds } from './composables/useLeafletBounds';
+import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import { interestingEvents } from "./interestingEvents";
+
 const display = useDisplay();
-import { DatePickerInstance } from "@vuepic/vue-datepicker";
 const calendar = ref<DatePickerInstance | null>(null);
-  
 type SheetType = "text" | "video" | null;
 type Timeout = ReturnType<typeof setTimeout>;
 
@@ -865,20 +868,20 @@ type Timeout = ReturnType<typeof setTimeout>;
 /**************
  * UI Setup
  *************/
-const urlParams = new URLSearchParams(window.location.search);
 // const hash = window.location.hash;
+const urlParams = new URLSearchParams(window.location.search);
 const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
 const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
 const extendedRange = ref(window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"); //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
 const hideIntro = urlParams.get("hideintro") === "true";
-const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';  
+const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore --> msPointerEnabled may not be defined in window.navigator
-const touchscreen = ref( ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled );
+const touchscreen = ref(('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled);
 
 
 function clearUrl(hash = false) {
-  const newUrl = location.origin + location.pathname  + (hash ? location.hash : '');
+  const newUrl = location.origin + location.pathname + (hash ? location.hash : '');
   window.history.replaceState({}, '', newUrl);
 }
 clearUrl(true);
@@ -891,6 +894,17 @@ const showNotice = ref(true);
 const sheet = ref<SheetType>(null);
 const accentColor = ref("#068ede");
 const accentColor2 = ref("#ffcc33");
+
+function selectSheet(name: SheetType) {
+  if (sheet.value === name) {
+    sheet.value = null;
+    nextTick(() => {
+      blurActiveElement();
+    });
+  } else {
+    sheet.value = name;
+  }
+}
 
 const showTextSheet = computed({
   get() {
@@ -909,16 +923,23 @@ const cssVars = computed(() => {
   };
 });
 
+const smallSize = computed(() => {
+  return display.smAndDown.value;
+});
+
+const mobile = computed(() => {
+  return smallSize.value && touchscreen.value;
+});
 
 
 function zpad(n: number, width: number = 2, character: string = "0"): string {
   return n.toString().padStart(width, character);
 }
-  
+
 /************
  * TIMESTAMP SETUP
  ************/
-import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";  
+import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 
 const erdTimestamps = ref<number[]>([]);
 const newTimestamps = ref<number[]>([]);
@@ -969,13 +990,13 @@ const fosterTimestamps = ref<number[]>([
   1711665840000,
   1711668240000,
 ]);
-  
-import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
+
+
 const timestamps = ref<number[]>(fosterTimestamps.value);
 const extendedRangeTimestamps = ref<number[]>([]);
 const showExtendedRange = ref(extendedRange.value);
 const useHighRes = ref(false);
-const { 
+const {
   timeIndex,
   timestamp,
   date,
@@ -1012,10 +1033,10 @@ async function updateTimestamps() {
     cloudTimestamps.value = ts.clouds;
     cloudTimestampsSet.value = new Set(ts.clouds);
   });
-  return ;
+  return;
 }
 
-updateTimestamps().then(() => {timestampsLoaded.value = true;})
+updateTimestamps().then(() => { timestampsLoaded.value = true; })
   .then(() => {
     if (window.location.hash.includes("extreme-events")) {
       nextTick(() => {
@@ -1023,9 +1044,6 @@ updateTimestamps().then(() => {timestampsLoaded.value = true;})
       });
     }
   });
-    
-
-
 
 
 /************
@@ -1043,41 +1061,35 @@ const initState = ref({
 });
 
 
-const homeLat =  40.044;
-const homeLon =  -98.789;
-const homeZoom =  4;
+const homeLat = 40.044;
+const homeLon = -98.789;
+const homeZoom = 4;
 const homeState = ref({
   loc: [homeLat, homeLon] as LatLngExpression,
   zoom: homeZoom,
   t: null as number | null
 });
 
-  
-
 
 const radio = ref<number | null>(null);
 const sublocationRadio = ref<number | null>(null);
 
 
-import { useLeafletBounds } from './composables/useLeafletBounds';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { leafletBounds: imageBounds, boundsArray: bounds } = useLeafletBounds(date);
 
-  
 
 const fieldOfRegardLayer = L.geoJSON(
-    fieldOfRegard as GeoJSON.GeometryCollection,
-    {
-      style: {
-        color: "#c10124",
-        fillColor: "transparent",
-        weight: 1,
-        opacity: 0.8,
-      },
-    }
+  fieldOfRegard as GeoJSON.GeometryCollection,
+  {
+    style: {
+      color: "#c10124",
+      fillColor: "transparent",
+      weight: 1,
+      opacity: 0.8,
+    },
+  }
 ) as L.Layer;
-  
-
 
 
 const selectedTimezone = ref("US/Eastern");
@@ -1098,20 +1110,17 @@ const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
 const showLADialog = ref(false);
 
-  
-
-
 
 const imageName = computed(() => {
   return getTempoFilename(date.value);
 });
-  
+
 const imageUrl = computed(() => {
   if (customImageUrl.value) {
     return customImageUrl.value;
   }
   const url = getTempoDataUrl(timestamp.value);
-  if (url === null) { return '';}
+  if (url === null) { return ''; }
   return url + imageName.value;
 });
 
@@ -1120,14 +1129,12 @@ const cloudUrl = computed(() => {
   if (!showClouds.value) {
     return '';
   }
-  
+
   if (cloudTimestampsSet.value.has(timestamp.value)) {
     return getCloudFilename(date.value);
   }
   return '';
 });
-
-import { useImageOverlay } from "./composables/useLeafletImageOverlay";
 
 
 const opacity = ref(0.9);
@@ -1135,57 +1142,51 @@ const preload = ref(true);
 const customImageUrl = ref("");
 const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds);
 const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds);
-  
+
 const cloudDataAvailable = computed(() => {
   return cloudTimestampsSet.value.has(timestamp.value);
 });
-  
+
 const whichDataSet = computed(() => {
   if (fosterTimestampsSet.value.has(timestamp.value)) {
     return 'TEMPO-lite';
   }
-    
+
   if (erdTimestampsSet.value.has(timestamp.value)) {
     return 'Early Release (V01)';
   }
-    
+
   if (newTimestampsSet.value.has(timestamp.value)) {
     return 'Level 3 (V03)';
   }
-    
+
   return 'Unknown';
 });
-  
 
-  
 
-  
 const highresAvailable = computed(() => {
   return newTimestampsSet.value.has(timestamp.value);
 });
-  
+
 const extendedRangeAvailable = computed(() => {
   return extendedRangeTimestampsSet.value.has(timestamp.value);
 });
-  
+
 const showingExtendedRange = computed(() => {
   return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
 });
-  
 
-
-import { useLeafletMap } from "./composables/useLeafletMap";
 
 const { map, setView } = useLeafletMap("map", initState.value);
 
 onMounted(() => {
   window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
-  
-  
+
+
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  const zoomHome = L.Control.zoomHome({homeCoordinates: homeState.value.loc, homeZoom: homeState.value.zoom});
+  const zoomHome = L.Control.zoomHome({ homeCoordinates: homeState.value.loc, homeZoom: homeState.value.zoom });
   const originalZH = zoomHome._zoomHome.bind(zoomHome);
   zoomHome._zoomHome = (_e: Event) => {
     originalZH();
@@ -1196,11 +1197,11 @@ onMounted(() => {
     }
   };
   zoomHome.addTo(map.value);
-  
-  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length-1];
+
+  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   imageOverlay.addTo(map.value as Map);
   cloudOverlay.addTo(map.value as Map);
-  
+
   updateFieldOfRegard();
   if (showFieldOfRegard.value) {
     fieldOfRegardLayer.addTo(map.value as Map);
@@ -1209,7 +1210,7 @@ onMounted(() => {
   // map.value.on('moveend', updateURL);
   // map.value.on('zoomend', updateURL);
 });
-  
+
 onBeforeUnmount(() => {
   // cleanup event handlers
   if (map.value) {
@@ -1217,60 +1218,40 @@ onBeforeUnmount(() => {
     map.value.off('zoomend');
   }
 });
-  
-  
-const smallSize = computed(() => {
-  return display.smAndDown.value;
-});
-  
-const mobile = computed(() => {
-  return smallSize.value && touchscreen.value;
-});
-  
 
 
-  
-
-  
-  
-  
-
-  
 const datesOfInterest = computed(() => {
   return interestingEvents.map(event => event.date);
 });
-  
+
 const dateStrings = computed(() => {
   return interestingEvents.map(event => event.dateString);
 });
-  
+
 const locationsOfInterest = computed(() => {
-  return interestingEvents.map(event => 
+  return interestingEvents.map(event =>
     event.locations.map(loc => ({
       ...loc,
       index: nearestDateIndex(new Date(loc.time)),
     }))
   );
 });
-  
+
 const locationsOfInterestText = computed(() => {
-  return interestingEvents.map(event => 
+  return interestingEvents.map(event =>
     event.locations.map(loc => loc.description)
   );
 });
-  
+
 const dateIsDST = computed(() => {
   const standardOffset = getTimezoneOffset(selectedTimezone.value, new Date(date.value.getUTCFullYear(), 0, 1));
   const currentOffset = getTimezoneOffset(selectedTimezone.value, date.value);
-  // console.log(standardOffset / (3600 * 1000), currentOffset / (3600 * 1000));
-  // log offsets in houts
-  // console.log(`standard: ${standardOffset/ (3600 * 1000)}, current ${currentOffset  / (3600 * 1000)}`);
   if (standardOffset === currentOffset) {
     return false;
   }
   return true;
 });
-  
+
 const timezoneOptions = computed(() => {
   return [
     { tz: 'US/Eastern', name: dateIsDST.value ? 'Eastern Daylight' : 'Eastern Standard' },
@@ -1282,20 +1263,20 @@ const timezoneOptions = computed(() => {
     { tz: 'UTC', name: 'UTC' },
   ];
 });
-  
+
 // TODO: Maybe there's a built-in Date function to get this formatting?
 const thumbLabel = computed(() => {
   const offset = getTimezoneOffset(selectedTimezone.value, date.value);
-  const dateObj = new Date(timestamp.value + offset); 
+  const dateObj = new Date(timestamp.value + offset);
   const hours = dateObj.getUTCHours();
   const amPm = hours >= 12 ? "PM" : "AM";
   let hourValue = hours % 12;
   if (hourValue === 0) {
     hourValue = 12;
   }
-  return `${date.value.getUTCMonth()+1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
+  return `${date.value.getUTCMonth() + 1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
 });
-  
+
 
 function setMarker(latlng: L.LatLngExpression) {
   console.log(L.Icon.Default.prototype.options);
@@ -1314,13 +1295,15 @@ function setMarker(latlng: L.LatLngExpression) {
     locationMarker.value.addTo(map.value as Map);
   }
 }
-  
+
+
 function updateHash() {
   if (window.location.hash.includes("extreme-events")) {
     activateExtremeEvents();
   }
 }
-  
+
+
 function updateURL() {
   if (map.value) {
     const center = map.value.getCenter();
@@ -1352,47 +1335,35 @@ function updateURL() {
     // window.history.replaceState(stateObj, '', url);
   }
 }
-  
-  
-  
+
+
 function cmapNO2(x: number): string {
   const rgb = cbarNO2(0, 1, x);
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
 }
-  
+
+
 function blurActiveElement() {
   const active = document.activeElement;
   if (active instanceof HTMLElement) {
     active.blur();
   }
 }
-  
-  
-function selectSheet(name: SheetType) {
-  if (sheet.value === name) {
-    sheet.value = null;
-    nextTick(() => {
-      blurActiveElement();
-    });
-  } else {
-    sheet.value = name;
-  }
-}
-  
 
-  
+
 async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
   return geocodingInfoForSearch(searchText, {
     countries: ["US", "CA", "MX", "CU", "BM", "HT", "DO"],
     limit: 10,
   }).catch(_err => null);
 }
-  
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
   setView([40.044, -98.789], 4);
 }
-  
+
+
 function play() {
   playInterval.value = setInterval(() => {
     if (timeIndex.value >= maxIndex.value) {
@@ -1407,21 +1378,15 @@ function play() {
     }
   }, 1000);
 }
-  
+
+
 function pause() {
   if (playInterval.value) {
     clearInterval(playInterval.value);
   }
 }
-  
-  
-// preloadImages(images: string[]) {
-//   const promises = images.map(src => loadImage(src));
-//   return promises;
-// },
-      
 
-  
+
 function getCloudFilename(date: Date): string {
   const filename = getTempoFilename(date);
   if (useHighRes.value) {
@@ -1430,11 +1395,13 @@ function getCloudFilename(date: Date): string {
     return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/resized_images/' + filename;
   }
 }
-  
+
+
 function getTempoFilename(date: Date): string {
-  return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth()+1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
+  return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth() + 1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
 }
-  
+
+
 function getTempoDataUrl(timestamp: number): string {
   if (showExtendedRange.value && extendedRangeTimestampsSet.value.has(timestamp)) {
     if (useHighRes.value) {
@@ -1445,24 +1412,22 @@ function getTempoDataUrl(timestamp: number): string {
   if (fosterTimestampsSet.value.has(timestamp)) {
     return 'https://tempo-images-bucket.s3.amazonaws.com/tempo-lite/';
   }
-    
+
   if (erdTimestampsSet.value.has(timestamp)) {
     return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/early_release/images/';
   }
-    
+
   if (newTimestampsSet.value.has(timestamp)) {
     if (useHighRes.value) {
       return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/';
     }
     return "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/resized_images/";
   }
-    
+
   return '';
 }
-  
 
 
-  
 function updateFieldOfRegard() {
   if (date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
     (fieldOfRegardLayer as L.GeoJSON).clearLayers();
@@ -1472,7 +1437,8 @@ function updateFieldOfRegard() {
     (fieldOfRegardLayer as L.GeoJSON).addData(fieldOfRegard as GeoJSON.GeometryCollection);
   }
 }
-  
+
+
 function imagePreload() {
   if (!preload.value) {
     return;
@@ -1494,10 +1460,8 @@ function imagePreload() {
     });
   });
 }
-  
 
 
-  
 function goToLocationOfInterst(index: number, subindex: number) {
   if (index < 0 || index >= locationsOfInterest.value.length) {
     console.warn('Invalid index for location of interest');
@@ -1511,7 +1475,8 @@ function goToLocationOfInterst(index: number, subindex: number) {
     console.warn('No index found for location of interest');
   }
 }
-  
+
+
 function goToLA() {
   showLADialog.value = false;
   const event = interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
@@ -1520,17 +1485,19 @@ function goToLA() {
     map.value.setView(loi[0].latlng, loi[0].zoom);
   }
 }
-  
+
+
 function activateLAViewer() {
   showLADialog.value = true;
 }
-  
+
+
 function activateExtremeEvents() {
   // Find the LA Wildfires event
   const laWildfireIndex = interestingEvents.findIndex(
     event => event.label?.includes("LA Wildfires")
   );
-        
+
   if (laWildfireIndex !== -1) {
     // Set the radio to select this event
     radio.value = laWildfireIndex;
@@ -1538,7 +1505,7 @@ function activateExtremeEvents() {
     showExtendedRange.value = true;
   }
 }
-  
+
 watch(() => timestampsLoaded.value, (loaded: boolean) => {
   if (loaded) {
     console.log('timestamps loaded');
@@ -1559,23 +1526,23 @@ watch(() => timestampsLoaded.value, (loaded: boolean) => {
     }
   }
 });
-  
+
 watch(() => timestamp.value, (_val: number) => {
   updateURL();
 });
-  
+
 watch(() => introSlide.value, (val: number) => {
   inIntro.value = val < 5;
   return;
 });
-  
+
 watch(() => dontShowIntro.value, (val: boolean) => {
   window.localStorage.setItem("dontShowIntro", val.toString());
   if (!val) {
     inIntro.value = true;
   }
 });
-  
+
 watch(() => loadedImagesProgress.value, (val: number) => {
   playing.value = false;
   const btn = document.querySelector('#play-pause-button');
@@ -1587,7 +1554,7 @@ watch(() => loadedImagesProgress.value, (val: number) => {
     }
   }
 });
-  
+
 watch(() => playing.value, (val: boolean) => {
   if (val) {
     play();
@@ -1595,23 +1562,23 @@ watch(() => playing.value, (val: boolean) => {
     pause();
   }
 });
-  
+
 watch(() => imageUrl.value, (_url: string) => {
   updateFieldOfRegard();
 });
-  
+
 watch(() => cloudUrl.value, (_url: string) => {
   // nothing to do here.
 });
-  
+
 watch(() => useHighRes.value, () => {
   imagePreload();
 });
-  
+
 watch(() => imageBounds.value, (bounds: L.LatLngBounds) => {
   console.log('image bounds change to', whichDataSet.value, bounds.toBBoxString());
 });
-  
+
 watch(() => showFieldOfRegard.value, (show: boolean) => {
   if (show) {
     fieldOfRegardLayer.addTo(map.value as Map);
@@ -1619,7 +1586,7 @@ watch(() => showFieldOfRegard.value, (show: boolean) => {
     map.value.removeLayer(fieldOfRegardLayer as L.Layer);
   }
 });
-  
+
 watch(() => showLocationMarker.value, (show: boolean) => {
   if (locationMarker.value) {
     if (show) {
@@ -1631,15 +1598,13 @@ watch(() => showLocationMarker.value, (show: boolean) => {
     }
   }
 });
-  
+
 watch(() => timestamps.value, () => {
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
 });
-  
+
 watch(() => radio.value, (value: number | null) => {
   if (value == null) {
-    // this.minIndex = 0;
-    // this.maxIndex = this.timestamps.length - 1;
     setNearestDate(singleDateSelected.value.getTime());
     sublocationRadio.value = null;
     return;
@@ -1654,7 +1619,7 @@ watch(() => radio.value, (value: number | null) => {
     sublocationRadio.value = 0;
   }
 });
-  
+
 watch(() => singleDateSelected.value, (value: Date) => {
   // console.log(`singleDateSelected ${value}`);
   const timestamp = value.getTime();
@@ -1665,21 +1630,20 @@ watch(() => singleDateSelected.value, (value: Date) => {
   }
   imagePreload();
 });
-  
+
 watch(() => sublocationRadio.value, (value: number | null) => {
   if (value !== null && radio.value != null) {
     goToLocationOfInterst(radio.value, value);
   }
 });
-  
 
-  
+
 watch(() => showChanges.value, (_value: boolean) => {
   if (showNotice.value) {
     showNotice.value = false;
   }
 });
-  
+
 watch(() => showExtendedRange.value, (_value: boolean) => {
   updateURL();
   imagePreload();
@@ -1691,49 +1655,49 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     font-family: "Highway Gothic Narrow";
     src: url("./assets/HighwayGothicNarrow.ttf");
   }
-  
+
   // import Lexand from google fonts
   // @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
-  
+
   :root {
     // font-size: clamp(14px, 1.7vw, 16px);
     // --default-font-size: 1rem; // we don't use this
     font-size: 16px; // this is the standard browser default
     --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem); // we don't use this
     --smithsonian-blue: #009ade;
-    --smithsonian-yellow: #ffcc33;  
+    --smithsonian-yellow: #ffcc33;
     --info-background: #092088;
     --map-height: 500px;
   }
-  
+
   .dp__theme_dark {
     --dp-primary-text-color: #fff !important; // selected date text
-    --dp-primary-color: var(--accent-color)!important; // selected date background
+    --dp-primary-color: var(--accent-color) !important; // selected date background
   }
-  
+
   .dp__month_year_select,
   .dp__calendar_item {
-    color: #97c8f1!important; // selectable date text & Month/Year
+    color: #97c8f1 !important; // selectable date text & Month/Year
     font-weight: 800 !important;
   }
-  
+
   .dp__cell_disabled {
     color: #888 !important;
     font-weight: 400;
   }
-  
+
   html {
     height: 100%;
     margin: 0;
     padding: 0;
     background-color: #000;
     overflow: hidden;
-  
-    
+
+
     -ms-overflow-style: none;
     // scrollbar-width: none;
   }
-  
+
   body {
     position: fixed;
     width: 100%;
@@ -1741,37 +1705,37 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     margin: 0;
     padding: 0;
     overflow: auto;
-  
+
     font-family: Verdana, Arial, Helvetica, sans-serif;
   }
-  
+
   a {
     text-decoration: none;
     color: var(--smithsonian-yellow);
   }
-  
+
   ul {
     margin-left: 1rem;
   }
-  
+
   #intro-background {
     position: fixed;
     top: 0;
     left: 0;
     width: 100% !important;
     height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.7); 
+    background-color: rgba(0, 0, 0, 0.7);
     z-index: 100;
   }
-  
+
   .gradient-background {
-      // rotated translucent background gradient
-      background: linear-gradient(45deg,
-                                rgb(14, 30, 40), 
-                                rgb(22, 50, 65), 
-                                rgb(30 70 90));
-    }
-  
+    // rotated translucent background gradient
+    background: linear-gradient(45deg,
+        rgb(14, 30, 40),
+        rgb(22, 50, 65),
+        rgb(30 70 90));
+  }
+
   #introduction-overlay {
     position: absolute;
     top: 50%;
@@ -1781,91 +1745,91 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     // outline: 5px solid var(--accent-color);
     border-radius: 1em;
     z-index: 1000;
-  
+
     @media (max-width: 700px) {
       width: 95%;
       padding: 3em 1em 1em;
     }
-  
+
     @media (min-width: 701px) {
       width: 75%;
       padding: 3em 2em 2em;
     }
-  
+
     .span-accent {
       color: var(--accent-color);
     }
-  
-  
-    
+
+
     //font-size: calc(1.1 * var(--default-font-size));
     // line-height: var(--default-line-height);
-  
+
     .v-list-item {
       color: #eee;
     }
-    
+
     .intro-text {
       color: white;
       font-size: 1em;
       line-height: 1.5em;
     }
-    
+
     strong {
       color: white;
     }
-    
+
     div#intro-bottom-controls {
       display: flex;
       flex-direction: row;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-  
+
       gap: 1em;
-      margin-top:0.5em;
-  
+      margin-top: 0.5em;
+
       .v-btn.v-btn--density-default {
-          max-height: calc(1.6 * var(--default-line-height));
-        }  
-  
+        max-height: calc(1.6 * var(--default-line-height));
+      }
+
       .v-btn--size-default {
         font-size: calc(0.9 * var(--default-font-size));
-      }    
-      
+      }
+
       #intro-next-button {
-        background-color: rgba(18, 18, 18,.5);
+        background-color: rgba(18, 18, 18, .5);
       }
     }
   }
-  
-  
+
+
   #splash-screen {
     color: #E0E0E0;
-  
+
     justify-content: space-around;
     align-content: center;
     padding-top: 4rem;
     padding-bottom: 1rem;
-  
+
     font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
-  
+
     div {
       margin-inline: auto;
       text-align: center;
     }
+
     // make a paragraph inside the div centered horizontally and vertically
     p {
       font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
       font-weight: bold;
       vertical-align: middle;
     }
-  
+
     #first-splash-row {
       width: 100%;
       font-size: 1.25em;
     }
-  
+
     #splash-screen-text {
       // in the grid, the text is in the 2nd column
       display: flex;
@@ -1874,7 +1838,7 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       font-size: 2em;
       color: var(--smithsonian-yellow);
     }
-  
+
     .splash-get-started {
       border: 2px solid white;
       font-size: 1.5em;
@@ -1882,7 +1846,7 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       margin-bottom: 2%;
       font-weight: bold !important;
     }
-  
+
     #splash-screen-acknowledgements {
       margin-top: 3rem;
       font-size: calc(1.7 * var(--default-font-size));
@@ -1890,48 +1854,49 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       width: 80%;
       color: var(--smithsonian-yellow);
     }
-  
+
     #splash-screen-logos {
       margin-block: 0.75em;
-      
+
       /* format for including more inline logos */
       display: flex; // place on same line
       justify-content: center; // align center
-      
-      > * {
+
+      >* {
         margin-inline: 0; // counteract margin-inline: auto from #splash-screen div
       }
+
       /* ************ */
-  
+
       img {
-      height: 5vmin;
-      vertical-align: middle;
-      margin: 2px;
+        height: 5vmin;
+        vertical-align: middle;
+        margin: 2px;
       }
-  
+
       @media only screen and (max-width: 600px) {
         img {
           height: 24px;
         }
       }
-  
+
       svg {
         vertical-align: middle;
         height: 24px;
       }
     }
   }
-  
+
   #intro-window-close-button {
-      position: absolute;
-      top: 0.25em;
-      right: 0.25em;
-  
-      &:hover {
-        cursor: pointer;
-      }
+    position: absolute;
+    top: 0.25em;
+    right: 0.25em;
+
+    &:hover {
+      cursor: pointer;
+    }
   }
-  
+
   #main-content {
     position: fixed;
     width: 100%;
@@ -1939,44 +1904,44 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     overflow: auto;
     transition: height 0.1s ease-in-out;
   }
-  
+
   #app {
     width: 100%;
     height: 100%;
     margin: 0;
     overflow: hidden;
   }
-  
+
   #map {
     width: 100%;
     height: var(--map-height)
   }
-  
+
   // define the layout
   .content-with-sidebars {
     position: relative;
     padding: 0;
-    
+
     display: grid;
     grid-template-columns: 0 .8fr .3fr;
     grid-template-rows: 70px var(--map-height) 78px .5fr .5fr;
     gap: 20px 10px;
-    
-    > * {
+
+    >* {
       background-color: transparent;
     }
-    
-    > div {
+
+    >div {
       outline: 1px solid transparent;
     }
-    
+
     #user-options {
       min-width: 200px;
       margin-left: 1.5rem;
       grid-column: 3 / 4;
       grid-row: 2 / 3;
     }
-    
+
     #logo-title {
       display: flex;
       align-items: center;
@@ -1984,7 +1949,7 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       grid-row: 1 / 2;
       gap: 10px;
     }
-    
+
     #menu-area {
       // grid-column: 3 / 4;
       // grid-row: 1 / 2;
@@ -1994,42 +1959,42 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       gap: 1rem;
       align-items: center;
     }
-  
+
     #where {
       display: none;
       grid-column: 1 / 2;
       grid-row: 2 / 3;
     }
-    
+
     #map-container {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
     }
-    
+
     #when {
       display: none;
       grid-column: 1 / 2;
       grid-row: 3 / 4;
     }
-    
+
     #slider-row {
       grid-column: 2 / 3;
       grid-row: 3 / 4;
     }
-  
+
     #information {
       padding: 1rem;
       grid-column: 2 / 3;
       grid-row: 4 / 6;
     }
-  
+
   }
-  
+
   // style the content 
   #main-content {
     padding: 2rem;
   }
-  
+
   .content-with-sidebars {
     font-family: "Lexend", sans-serif;
     font-optical-sizing: auto;
@@ -2037,7 +2002,7 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     font-style: normal;
     background-color: transparent;
   }
-  
+
   #title {
     color: var(--smithsonian-yellow);
     font-weight: 600;
@@ -2046,43 +2011,39 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     text-wrap: nowrap;
     flex-grow: 1;
   }
-  
-  a[href="https://tempo.si.edu"] > img {
+
+  a[href="https://tempo.si.edu"]>img {
     // display: inline;
-    height: 70px!important;
+    height: 70px !important;
     width: auto !important;
   }
-  
+
   #information {
     background-color: var(--info-background);
     border-radius: 10px;
     padding-inline: 1rem;
     // margin-right: 200px;
   }
-  
+
   a {
     text-decoration: underline;
     font-weight: bold;
     color: var(--accent-color-2);
   }
-  
-  
-  
-  
-  
-  
+
+
   // prevent overflows of the content
   #user-options {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 5px; 
+    gap: 5px;
   }
-  
+
   #date-radio {
     padding-block: 0.5rem;
   }
-  
+
   #date-radio div.highlighted label {
     font-size: 1.2em;
     font-weight: bold;
@@ -2090,22 +2051,22 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     color: var(--smithsonian-yellow);
     opacity: 1;
   }
-  
+
   #all-dates {
     padding-bottom: 0.5rem;
   }
-  
+
   #locations-of-interest {
     border: 1px solid black;
     padding-block: 0.5rem;
     padding-inline: 1rem;
     height: fit-content;
-  
+
     h3 {
       font-weight: 500;
     }
   }
-  
+
   .big-label {
     font-size: 2rem;
     text-align: right;
@@ -2113,30 +2074,32 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     align-self: end;
     color: var(--smithsonian-blue);
   }
-  
+
   #when {
     align-self: start;
   }
-  
-  #slider-row, #when {
+
+  #slider-row,
+  #when {
     margin-top: 1.5rem;
   }
-  
+
   #slider-row {
     margin-left: 3rem;
   }
+
   #map-container {
     position: relative;
     display: flex;
     flex-direction: row;
     padding-right: 10px;
-  
+
     #map {
       flex-basis: 80%;
       flex-grow: 1;
       flex-shrink: 1;
     }
-    
+
     #location-and-sharing {
       position: absolute;
       bottom: 0;
@@ -2145,69 +2108,70 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       flex-direction: row;
       align-items: center;
       gap: 0.5rem;
-      width:fit-content;
+      width: fit-content;
     }
+
     .forward-geocoding-container {
       width: 250px;
       border: 2px solid black;
     }
-    
+
     #map-show-hide-controls {
       z-index: 1000;
       position: absolute;
       top: 1rem;
       right: 80px;
     }
-  
+
     #map-legend {
       position: absolute;
       top: 0;
       right: 80px;
       width: fit-content;
       z-index: 1000;
-      
+
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      
+
       color: black;
       background-color: #fff5;
       padding-left: 0.5rem;
       padding-right: 0.25rem;
-      
+
       backdrop-filter: blur(5px);
-      
+
       hr.line-legend {
         display: inline-block;
         border: 0.5px solid #c10124;
         width: 3rem;
       }
     }
-  
-     .colorbar-container {
+
+    .colorbar-container {
       flex-grow: 0;
       flex-shrink: 1;
-  
+
       .unit-label {
         font-size: .95em;
       }
     }
-    
+
     #la-fires {
       z-index: 1000;
       position: absolute;
-      right: 80px ;
+      right: 80px;
       bottom: 1rem;
-      
+
     }
   }
-  
+
   #slider-row {
     display: flex;
     flex-direction: row;
     padding-left: 0;
-    
-    > #play-pause-button {
+
+    >#play-pause-button {
       height: fit-content;
       align-self: center;
       padding-inline: 0.5rem;
@@ -2216,71 +2180,73 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       color: var(--accent-color);
       border: 2px solid var(--accent-color);
     }
-    
+
     #play-pause-button[disabled] {
       filter: grayscale(100%);
       cursor: progress;
       cursor: not-allowed;
     }
-  
+
     .icon-wrapper {
       padding-inline: 0.5rem !important;
     }
   }
-  
+
   .time-slider {
-  
+
     .v-slider-thumb {
-  
+
       .v-slider-thumb__surface::after {
         background-image: url("./assets/smithsonian.png");
         background-size: 30px 30px;
         height: 30px;
         width: 30px;
       }
-      
+
       .v-slider-thumb__label {
         background-color: var(--accent-color-2);
         border: 0.25rem solid var(--accent-color);
         width: max-content;
         height: 2.5rem;
         font-size: 1rem;
-      
+
         &::before {
           color: var(--accent-color);
         }
       }
     }
-  
+
     .v-slider-track__tick {
-        background-color: var(--accent-color); /* Change color */
-        height: 15px; /* Change size */
-        width: 4px;
-        margin-top: 0 !important;
-        // top: -10%;
+      background-color: var(--accent-color);
+      /* Change color */
+      height: 15px;
+      /* Change size */
+      width: 4px;
+      margin-top: 0 !important;
+      // top: -10%;
     }
-  
+
     .v-slider {
-    
+
       .v-slider.v-input--horizontal {
         grid-template-rows: auto 0px;
       }
-      
+
       .v-slider.v-input--horizontal .v-slider-thumb__label {
         // top: calc(var(--v-slider-thumb-size) * 1.5);
-        z-index:2000;
+        z-index: 2000;
       }
-      
+
       .v-slider.v-input--horizontal .v-slider-thumb__label::before {
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-bottom: 6px solid transparent;
-          border-top: 6px solid currentColor;
-          bottom: -15px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-top: 6px solid currentColor;
+        bottom: -15px;
       }
     }
   }
-  
+
   #opacity-slider-container {
     display: flex;
     flex-direction: column;
@@ -2289,50 +2255,51 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     padding-left: 7%;
     padding-right: 7%;
     gap: 2px;
-  
+
     .v-slider {
       margin-right: 0;
       width: 100%;
     }
-  
+
     #opacity-slider-label {
       opacity: 0.7;
       width: fit-content;
     }
   }
-  
+
   #body-logos {
     margin-bottom: -1rem;
     display: flex;
     flex-direction: row;
     justify-content: flex-end;
+
     img {
       height: 35px !important;
       vertical-align: middle;
       margin: 2px;
     }
   }
-  
-  #icons-container > a[href="https://worldwidetelescope.org/home/"] {
+
+  #icons-container>a[href="https://worldwidetelescope.org/home/"] {
     display: none;
   }
-  
+
   .v-selection-control {
     z-index: auto;
-    
+
   }
-  
+
   .v-radio-group .v-input__details {
     display: none;
   }
-  
+
   .v-radio-group .v-selection-control {
     label {
       width: 100%;
     }
   }
-  
-  .rounded-icon-wrapper{
+
+  .rounded-icon-wrapper {
     height: fit-content;
     align-self: center;
     padding-inline: 0.5rem;
@@ -2342,11 +2309,11 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     border: 2px solid var(--accent-color);
     border-radius: 20px;
   }
-  
+
   i.mdi-menu-down {
     color: var(--smithsonian-blue);
   }
-  
+
   // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
   :focus-visible:not(.v-field__input input, .v-overlay__content),
   button:focus-visible,
@@ -2356,54 +2323,54 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     box-shadow: 0 0 0 6px black !important;
     border-radius: .125rem;
   }
-  
+
   .controls-card {
     padding: 1rem;
     border: 1px solid #068ede;
   }
-  
+
   //  mobile styles
-  
+
   // ========= DEFINE MOBILE STYLES =========
   // KEEP THEM ALL HERE
   @media (max-width: 1180px) {
-    
+
     .content-with-sidebars {
       grid-template-columns: 0px auto auto;
       grid-template-rows: 3.5rem var(--map-height) 78px .5fr .5fr;
-      
+
       #when {
         display: none;
       }
-      
+
       #where {
         display: none;
       }
-      
+
       #title {
         text-wrap: wrap;
         font-size: 2rem;
         line-height: 1.25;
         margin-left: 10px;
       }
-      
+
       #slider-row {
         margin-left: 3rem;
       }
-      
-      a[href="https://tempo.si.edu"] > img {
-        height: 70px!important;
+
+      a[href="https://tempo.si.edu"]>img {
+        height: 70px !important;
         width: auto !important;
       }
-      
+
       #user-options {
         width: 250px;
       }
-    
-    
+
+
     }
   }
-  
+
   @media (max-width: 750px) {
     :root {
       --map-height: 60vh;
@@ -2411,157 +2378,157 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
       --map-height: 60svh;
       font-size: 14px;
     }
-    
+
     #main-content {
       padding: 1rem;
     }
-    
+
     #introduction-overlay .v-window {
       max-height: 75vh;
       max-height: 75dvh;
       max-height: 75sdvh;
       overflow-y: scroll;
     }
-    
+
     #introduction-overlay .intro-text {
       font-size: min(1.15em, 2vw);
     }
-    
+
     #introduction-overlay ul li {
       margin-block-start: 1.15em;
     }
+
     .content-with-sidebars {
       grid-template-columns: 1fr;
       grid-template-rows: auto auto 78px repeat(5, auto);
       gap: 10px;
       // padding-inline: 1rem;
-      
-      
+
+
       #logo-title {
         min-width: 0;
         grid-column: 1 / 2;
         grid-row: 1 / 2;
       }
-      
+
       a[href="https://tempo.si.edu"]:has(img) {
         grid-column: 1 / 2;
         grid-row: 1 / 2;
       }
-      
+
       #menu-area {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 1rem;
-      align-items: flex-end;
-    }
-      
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 1rem;
+        align-items: flex-end;
+      }
+
       #map-container {
         grid-column: 1 / 2;
         grid-row: 2 / 3;
       }
-      
+
       #map-container #map-show-hide-controls {
         right: 5px
       }
-      
+
       #slider-row {
         grid-column: 1 / 2;
         grid-row: 3 / 4;
       }
-      
+
       #user-options {
         grid-column: 1 / 2;
         grid-row: 4 / 5;
       }
-      
-      
+
+
       #where {
         display: none;
       }
-      
-      
+
+
       #when {
         display: none;
       }
-      
-      
+
+
       #bottom-options {
         grid-column: 1 / 2;
         grid-row: 5 / 6;
       }
-      
+
       #information {
         grid-column: 1 / 2;
         grid-row: 6 / 7;
       }
-      
+
       // #body-logos {
       //   grid-column: 1 / 2;
       //   grid-row: 7 / 8;
       // }
     }
-    
+
     .content-with-sidebars {
-      
+
       #slider-row {
         margin-left: 4rem;
         margin-right: 1rem;
         padding-top: 10px;
         align-items: center;
       }
-      
+
       #user-options {
         margin: 0;
         width: auto;
       }
-      
+
       #bottom-options {
         margin: 0;
       }
-      
+
       #information {
         font-size: 1em;
       }
-      
-    
-    
-    #title {
-      font-size: 2rem;
-      margin-left: 15px;
-      text-wrap: wrap;
-  
+
+
+      #title {
+        font-size: 2rem;
+        margin-left: 15px;
+        text-wrap: wrap;
+
+      }
+
     }
-    
-  }
-    
-    
+
+
     #map-container {
       display: flex;
       flex-direction: column;
-      
-      
+
+
       #map-contents {
         position: relative;
       }
-      
+
       #map-legend {
         right: 0;
       }
-      
+
       .colorbar-container-horizontal {
         margin-top: 1rem;
         margin-bottom: 0.5rem;
         z-index: 5000;
         --height: 0.75rem;
       }
-      
+
     }
-  
-  
+
+
   }
-  
+
   /* Leaflet crispness override */
   // @JobLeonard - https://github.com/Leaflet/Leaflet/issues/5883#issue-269071844
   // .leaflet-container .leaflet-overlay-pane svg,
@@ -2571,16 +2538,24 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
   .leaflet-container img.leaflet-image-layer {
     max-width: none !important;
     /* Preserve crisp pixels with scaled up images */
-    image-rendering: optimizeSpeed;             /* Legal fallback */
-    image-rendering: -moz-crisp-edges;          /* Firefox        */
-    image-rendering: -o-crisp-edges;            /* Opera          */
-    image-rendering: -webkit-optimize-contrast; /* Safari         */
-    image-rendering: optimize-contrast;         /* CSS3 Proposed  */
-    image-rendering: crisp-edges;               /* CSS4 Proposed  */
-    image-rendering: pixelated;                 /* CSS4 Proposed  */
-    -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
+    image-rendering: optimizeSpeed;
+    /* Legal fallback */
+    image-rendering: -moz-crisp-edges;
+    /* Firefox        */
+    image-rendering: -o-crisp-edges;
+    /* Opera          */
+    image-rendering: -webkit-optimize-contrast;
+    /* Safari         */
+    image-rendering: optimize-contrast;
+    /* CSS3 Proposed  */
+    image-rendering: crisp-edges;
+    /* CSS4 Proposed  */
+    image-rendering: pixelated;
+    /* CSS4 Proposed  */
+    -ms-interpolation-mode: nearest-neighbor;
+    /* IE8+           */
   }
-  
+
   .cds-snackbar-alert {
     position: absolute;
     top: 1rem;
@@ -2588,73 +2563,78 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
     pointer-events: auto;
     z-index: 999;
   }
-  
-  .snackbar-alert-ul { 
+
+  .snackbar-alert-ul {
     margin-left: 1em;
   }
-  
+
   @media (max-width: 750px) {
     .cds-snackbar-alert {
       top: -1rem;
     }
   }
-  
-  .menu-button, .share-button, .whats-new-button {
+
+  .menu-button,
+  .share-button,
+  .whats-new-button {
     outline: 2px solid var(--smithsonian-yellow) !important;
     height: 2rem !important;
   }
-  
+
   .whats-new-button {
     padding-inline: 10px;
   }
-  
+
   div.callout-wrapper {
     display: content;
     // overflow-x: hidden;  
   }
-  
+
   .menu-link {
     text-decoration: none;
   }
-  
+
   #loading-circle-progress-container {
     font-size: large;
   }
-  
+
   #la-fires {
     max-width: 20ch;
-    
+
     .v-btn {
       height: fit-content; // calc(var(--v-btn-height) + 18px);
       padding-block: 5px;
     }
-    
+
     .v-btn__content {
       white-space: normal;
-  
+
     }
   }
+
   .la-fires-cds-dialog .cds-dialog-card .v-card-text {
     height: unset;
   }
-  
+
   .pulse {
     animation-name: pulse;
-    animation-duration: 1.5s ;
+    animation-duration: 1.5s;
     animation-iteration-count: 3;
   }
-  
+
   /* Generated by Copilot */
   @keyframes pulse {
     0% {
       transform: scale(1);
     }
+
     50% {
       transform: scale(1.2);
     }
+
     100% {
       transform: scale(1);
     }
   }
-  </style>
+</style>
   
