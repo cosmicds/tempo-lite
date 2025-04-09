@@ -1,844 +1,844 @@
 <template>
-  <v-app
-    id="app"
-    :style="cssVars"
-  >
-  
-  <v-overlay
-    :model-value="inIntro"
-    :style="cssVars"
-    id="intro-background"
-  >
-  
-  <v-dialog 
-    v-model="inIntro"
-          >
-          <div v-if="inIntro" id="introduction-overlay" class="elevation-10 gradient-background">
-            <v-window v-model="introSlide">
-              <template v-slot:additional>
-                <div id="intro-window-close-button">
-                <font-awesome-icon
-                  size="xl"
-                  class="ma-3"
-                  color="#b3d5e6"
-                  icon='square-xmark'
-                  @click="inIntro = !inIntro"
-                  @keyup.enter="inIntro = !inIntro"
-                  tabindex="0"
-                  tooltip-location="start"
-                /> 
-              </div>
-              </template>
-  
-              <v-window-item :value="1"
-                id="splash-screen"
+<v-app
+  id="app"
+  :style="cssVars"
+>
+
+<v-overlay
+  :model-value="inIntro"
+  :style="cssVars"
+  id="intro-background"
+>
+
+<v-dialog 
+  v-model="inIntro"
+        >
+        <div v-if="inIntro" id="introduction-overlay" class="elevation-10 gradient-background">
+          <v-window v-model="introSlide">
+            <template v-slot:additional>
+              <div id="intro-window-close-button">
+              <font-awesome-icon
+                size="xl"
+                class="ma-3"
+                color="#b3d5e6"
+                icon='square-xmark'
+                @click="inIntro = !inIntro"
+                @keyup.enter="inIntro = !inIntro"
+                tabindex="0"
+                tooltip-location="start"
+              /> 
+            </div>
+            </template>
+
+            <v-window-item :value="1"
+              id="splash-screen"
+            >
+              <div
+                id="first-splash-row"
               >
-                <div
-                  id="first-splash-row"
-                >
-                  <div id="splash-screen-text">
-                    What Is in the Air You Breathe?
-                  </div>
-                  <div>
-                    Explore daily pollution maps over North America and find out.
-                  </div>
+                <div id="splash-screen-text">
+                  What Is in the Air You Breathe?
                 </div>
-  
                 <div>
-                  <v-btn
-                    class="splash-get-started"
-                    @click="introSlide++"
-                    @keyup.enter="introSlide++"
-                    :color="accentColor"
-                    :density="display.smAndDown ? 'compact' : 'default'"
-                    size="x-large"
-                    variant="elevated"
-                    rounded="lg"
-                  >
-                    Get Started
-                  </v-btn>
+                  Explore daily pollution maps over North America and find out.
                 </div>
-              
-                <div id="splash-screen-acknowledgements">
-                  Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
-                  
-                  <div id="splash-screen-logos">
-                    <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
-                    ><img alt="Smithsonian Logo" src="220px-Smithsonian_sun_logo_no_text.svg.png"></a>
-                    <credit-logos/>
-                  </div>
-                </div>
-              </v-window-item>
-              
-              <v-window-item :value="2">
-                <div class="intro-text">
-                  <p class="mb-5">
-                    The TEMPO satellite mission (Tropospheric Emissions: Monitoring Pollution), launched in April 2023, is the first space-based instrument to monitor major air pollutants across the North American continent every daylight hour at high spatial resolution. A collaboration between NASA and the Smithsonian Astrophysical Observatory, the TEMPO instrument gathers hourly daytime scans of the atmosphere over North America from the Atlantic Ocean to the Pacific Coast and from roughly Mexico City to central Canada.
-                  </p>
-                </div>
-              </v-window-item>
-              
-              <v-window-item :value="3">
-                <div class="intro-text mb-3">
-                  <p class="mb-3">
-                    This Data Story provides an introduction to what can be learned from TEMPO’s data, which became publicly available May 20, 2024. The map here visualizes hourly Nitrogen Dioxide (NO<sub>2</sub>) data over time. NO<sub>2</sub> can be produced by:
-                  </p> 
-                  <ul>
-                    <li>Burning of fossil fuels&#8212;for example from vehicles, power plants, manufacturing sites, and oil refineries</li>
-                    <li>Fires and biomass burning&#8212;including wildfires and prescribed burns, as well as burning of vegetation for land clearing</li>
-                    <li>Bacteria, which naturally convert nitrogen in soil into compounds that can form NO<sub>2</sub>. Agricultural use of nitrogen-based fertilizers increases the amount of NO<sub>2</sub> produced by these bacteria.</li>
-                    <li>Lightning, which triggers a chemical reaction that turns harmless N<sub>2</sub> in the atmosphere into NO<sub>2</sub>.
-  </li>
-                  </ul>
-                  <p class="mt-3">
-                  For each date, you can see the scans beginning on the East Coast in the morning, and ending on the West Coast as the Sun sets.
-                  </p> 
-                </div>
-              </v-window-item>
-              <v-window-item :value="4">
-                <div class="intro-text mb-3">      
-                  <p class="mb-3">
-                    In this interactive page you can:
-                  </p>
-                  <ul>
-                    <li>
-                      Use the search box to navigate a location of your choice.
-                    </li>
-                    <li>
-                      Select a date and press the “Play” button or scroll the time slider to view the changing concentrations of NO<sub>2</sub> on those dates. 
-                    </li>
-                    <li>
-                      Click <v-icon style="color: #ffcc33">mdi-share-variant</v-icon> to share your selected location, date, and time with others.
-                    </li>
-                    <li v-bind:style="cssVars">
-                      Press the <v-icon style="font-size: 1.3em; color: var(--accent-color)" elevation="1">mdi-information-variant-circle-outline</v-icon> button next to each Notable Date to get an overview of what to look for on that date
-                    </li>
-                    <li>
-                      For each Notable Date, select one of two zoomed-in Locations to investigate specific pollution events.
-                    </li>
-                    <li>
-                      You can use the “Timezone” setting to investigate how pollution evolves over the day in different parts of the country, for example as rush hour progresses in large cities.
-                    </li>
-                  </ul>
-                  <!-- add do not show introduction again button -->
-                  <v-checkbox
-                    v-model="dontShowIntro"
-                    @keyup.enter="dontShowIntro = !dontShowIntro"
-                    label="Don't show this introduction at launch"
-                    color="#c10124"
-                    hide-details
-                  />
-                </div>
-              </v-window-item>
-            </v-window>
-  
-            <div id="intro-bottom-controls">
+              </div>
+
               <div>
                 <v-btn
-                  v-if="(introSlide > 1)"
-                  id="intro-next-button"
+                  class="splash-get-started"
+                  @click="introSlide++"
+                  @keyup.enter="introSlide++"
                   :color="accentColor"
-                  @click="introSlide--"
-                  @keyup.enter="introSlide--"
-                  elevation="0"
-                  >
-                  Back
+                  :density="display.smAndDown ? 'compact' : 'default'"
+                  size="x-large"
+                  variant="elevated"
+                  rounded="lg"
+                >
+                  Get Started
                 </v-btn>
               </div>
-              
+            
+              <div id="splash-screen-acknowledgements">
+                Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
+                
+                <div id="splash-screen-logos">
+                  <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
+                  ><img alt="Smithsonian Logo" src="220px-Smithsonian_sun_logo_no_text.svg.png"></a>
+                  <credit-logos/>
+                </div>
+              </div>
+            </v-window-item>
+            
+            <v-window-item :value="2">
+              <div class="intro-text">
+                <p class="mb-5">
+                  The TEMPO satellite mission (Tropospheric Emissions: Monitoring Pollution), launched in April 2023, is the first space-based instrument to monitor major air pollutants across the North American continent every daylight hour at high spatial resolution. A collaboration between NASA and the Smithsonian Astrophysical Observatory, the TEMPO instrument gathers hourly daytime scans of the atmosphere over North America from the Atlantic Ocean to the Pacific Coast and from roughly Mexico City to central Canada.
+                </p>
+              </div>
+            </v-window-item>
+            
+            <v-window-item :value="3">
+              <div class="intro-text mb-3">
+                <p class="mb-3">
+                  This Data Story provides an introduction to what can be learned from TEMPO’s data, which became publicly available May 20, 2024. The map here visualizes hourly Nitrogen Dioxide (NO<sub>2</sub>) data over time. NO<sub>2</sub> can be produced by:
+                </p> 
+                <ul>
+                  <li>Burning of fossil fuels&#8212;for example from vehicles, power plants, manufacturing sites, and oil refineries</li>
+                  <li>Fires and biomass burning&#8212;including wildfires and prescribed burns, as well as burning of vegetation for land clearing</li>
+                  <li>Bacteria, which naturally convert nitrogen in soil into compounds that can form NO<sub>2</sub>. Agricultural use of nitrogen-based fertilizers increases the amount of NO<sub>2</sub> produced by these bacteria.</li>
+                  <li>Lightning, which triggers a chemical reaction that turns harmless N<sub>2</sub> in the atmosphere into NO<sub>2</sub>.
+</li>
+                </ul>
+                <p class="mt-3">
+                For each date, you can see the scans beginning on the East Coast in the morning, and ending on the West Coast as the Sun sets.
+                </p> 
+              </div>
+            </v-window-item>
+            <v-window-item :value="4">
+              <div class="intro-text mb-3">      
+                <p class="mb-3">
+                  In this interactive page you can:
+                </p>
+                <ul>
+                  <li>
+                    Use the search box to navigate a location of your choice.
+                  </li>
+                  <li>
+                    Select a date and press the “Play” button or scroll the time slider to view the changing concentrations of NO<sub>2</sub> on those dates. 
+                  </li>
+                  <li>
+                    Click <v-icon style="color: #ffcc33">mdi-share-variant</v-icon> to share your selected location, date, and time with others.
+                  </li>
+                  <li v-bind:style="cssVars">
+                    Press the <v-icon style="font-size: 1.3em; color: var(--accent-color)" elevation="1">mdi-information-variant-circle-outline</v-icon> button next to each Notable Date to get an overview of what to look for on that date
+                  </li>
+                  <li>
+                    For each Notable Date, select one of two zoomed-in Locations to investigate specific pollution events.
+                  </li>
+                  <li>
+                    You can use the “Timezone” setting to investigate how pollution evolves over the day in different parts of the country, for example as rush hour progresses in large cities.
+                  </li>
+                </ul>
+                <!-- add do not show introduction again button -->
+                <v-checkbox
+                  v-model="dontShowIntro"
+                  @keyup.enter="dontShowIntro = !dontShowIntro"
+                  label="Don't show this introduction at launch"
+                  color="#c10124"
+                  hide-details
+                />
+              </div>
+            </v-window-item>
+          </v-window>
+
+          <div id="intro-bottom-controls">
+            <div>
               <v-btn
                 v-if="(introSlide > 1)"
                 id="intro-next-button"
                 :color="accentColor"
-                @click="introSlide++"
-                @keyup.enter="introSlide++"
+                @click="introSlide--"
+                @keyup.enter="introSlide--"
                 elevation="0"
                 >
-                {{ introSlide < 4 ? 'Next' : 'Get Started' }}
+                Back
               </v-btn>
             </div>
-          </div>
-        </v-dialog>
-      </v-overlay>
-    <div
-      id="main-content"
-    > 
-    <marquee-alert 
-      v-if="smallSize && showExtendedRangeFeatures"
-      timeout="30000"
-      message="You can view data with an extend range for the 
-              duration of the LA fires. See the 🔥 button on the map"
-      />
-      <div class="content-with-sidebars">
-        <!-- tempo logo -->
-        <div id="logo-title">
-        <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer" >
-          <img 
-            src="./assets/TEMPO-Logo-Small.png"
-            alt="TEMPO Logo"
-            style="width: 100px; height: 100px;"
-          >
-        </a>
-  
-        <h1 id="title">What is in the Air You Breathe?</h1>
-        <!-- </div> -->
-        <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
-          <ul class="snackbar-alert-ul">
-            <li class="change-item mb-5" v-for="change in changes" :key="change.date" :data-date="change.date">
-              <span style="font-weight:bold;">{{ change.date }}</span><br> <span v-html="change.html">  </span>{{ change.text }}
-            </li>
-          </ul>
-          <!-- <template v-slot:activator="{ onClick, id }">
-            <v-btn :id="id" @click="onClick" color="primary">
-              Custom Activator
-            </v-btn>
-          </template>  -->
-        </cds-dialog>
-  
-        <div id="menu-area">
-          <v-btn 
-            v-if="(new Date('2025-02-21 00:00:00') > new Date())"
-            class='whats-new-button pulse' 
-            aria-label="What's new" 
-            @click="showChanges = true" 
-            @keyup.enter="showChanges = true" 
-            variant="outlined" 
-            rounded="lg" 
-            :color="accentColor2" 
-            elevation="0"
-            size="lg"
-            >
-            <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="What's new"></v-tooltip>
-            <v-icon>mdi-creation</v-icon>
-          </v-btn>
-          <share-button
-              :source="currentUrl"
-              buttonColor="black"
-              :iconColor="accentColor2"
+            
+            <v-btn
+              v-if="(introSlide > 1)"
+              id="intro-next-button"
+              :color="accentColor"
+              @click="introSlide++"
+              @keyup.enter="introSlide++"
               elevation="0"
-              size="small"
-              rounded="1"
-              :tooltip-disabled="mobile"
-              alert
-            />
-          <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
-            <v-icon size="x-large">mdi-menu</v-icon>
-            <v-menu
-              activator="parent"
               >
-              <v-list>
-                <v-list-item 
-                  tabindex="0"
-                  aria-label="See recent changes"
-                  @click="showChanges = true"
-                  @keyup.enter="showChanges = true"
-                  >
-                  What's New
-                </v-list-item>
-  
-                <v-list-item 
-                  tabindex="0" 
-                  aria-label="Show introduction"
-                  @click="() => {introSlide = 1; inIntro = true;}"
-                  @keyup.enter="() => {introSlide = 1; inIntro = true;}"
-                  >
-                    Introduction
-                </v-list-item>
-                
-                <v-list-item 
-                  tabindex="0"
-                  aria-label="Show user guide"
-                  @click="() => {introSlide = 4; inIntro = true;}"
-                  @keyup.enter="() => {introSlide = 4; inIntro = true;}"
-                  >
-                  User Guide
-                </v-list-item>
-                
-                <v-list-item 
-                  tabindex="0"
-                  aria-label="Show dialog telling about the data"
-                  @click="showAboutData = true"
-                  @keyup.enter="showAboutData = true"
-                  >
-                  About the Data
-                </v-list-item>
-                
-                <v-list-item 
-                  tabindex="0" 
-                  aria-label="Show credits"
-                  @click="showCredits = true"
-                  @keyup.enter="showCredits = true"
-                  >
-                    Credits
-                </v-list-item>
-                
-              </v-list>
-            </v-menu>
+              {{ introSlide < 4 ? 'Next' : 'Get Started' }}
+            </v-btn>
+          </div>
+        </div>
+      </v-dialog>
+    </v-overlay>
+  <div
+    id="main-content"
+  > 
+  <marquee-alert 
+    v-if="smallSize && showExtendedRangeFeatures"
+    timeout="30000"
+    message="You can view data with an extend range for the 
+            duration of the LA fires. See the 🔥 button on the map"
+    />
+    <div class="content-with-sidebars">
+      <!-- tempo logo -->
+      <div id="logo-title">
+      <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer" >
+        <img 
+          src="./assets/TEMPO-Logo-Small.png"
+          alt="TEMPO Logo"
+          style="width: 100px; height: 100px;"
+        >
+      </a>
+
+      <h1 id="title">What is in the Air You Breathe?</h1>
+      <!-- </div> -->
+      <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
+        <ul class="snackbar-alert-ul">
+          <li class="change-item mb-5" v-for="change in changes" :key="change.date" :data-date="change.date">
+            <span style="font-weight:bold;">{{ change.date }}</span><br> <span v-html="change.html">  </span>{{ change.text }}
+          </li>
+        </ul>
+        <!-- <template v-slot:activator="{ onClick, id }">
+          <v-btn :id="id" @click="onClick" color="primary">
+            Custom Activator
           </v-btn>
-        </div>
-      </div>
-        <div id="where" class="big-label">where</div>
-        <div id="map-container">
-          <colorbar-horizontal
-            v-if="display.width.value <= 750"
-            label="Amount of NO2"
-            backgroundColor="transparent"
-            :nsteps="255"
-            :cmap="cmapNO2"
-            start-value="1"
-            :end-value="showingExtendedRange ? '300' : '150'"
-            :extend="true"
+        </template>  -->
+      </cds-dialog>
+
+      <div id="menu-area">
+        <v-btn 
+          v-if="(new Date('2025-02-21 00:00:00') > new Date())"
+          class='whats-new-button pulse' 
+          aria-label="What's new" 
+          @click="showChanges = true" 
+          @keyup.enter="showChanges = true" 
+          variant="outlined" 
+          rounded="lg" 
+          :color="accentColor2" 
+          elevation="0"
+          size="lg"
           >
-          <template v-slot:label>
-                <div style="text-align: center;">Amount of NO&#x2082;&nbsp;<span class="unit-label">(10&sup1;&#x2074; mol/cm&sup2;)</span></div>
-          </template>
-          </colorbar-horizontal>
-          <div id="map-contents" style="width:100%; height: 100%;">
-            <div id="map">
-              <v-overlay
-                :modelValue="loadedImagesProgress < 100"
-                style="z-index: 1000;"
-                class="align-center justify-center"
-                contained
-                opacity=".8"
-                >
-                <!-- Generated by Copilot -->
-                <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
-                  <label class="text-black" for="loading-circle-progress">Loading Data...</label>
-                  <v-progress-circular
-                    id="loading-circle-progress"
-                    style="z-index: 1000;"
-                    :size="100"
-                    :width="15"
-                    :model-value="loadedImagesProgress"
-                    color="#092088"
-                  >
-                  {{ loadedImagesProgress.toFixed(0) }}%
-                </v-progress-circular>
-                </div>
-              </v-overlay>
-            </div>
-  
-            <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
-            <!-- show hide cloud data, disable if none is available -->
-  
-            <v-menu
-              id="map-controls"
-              v-model="showControls"
-              :close-on-content-click="false"
+          <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="What's new"></v-tooltip>
+          <v-icon>mdi-creation</v-icon>
+        </v-btn>
+        <share-button
+            :source="currentUrl"
+            buttonColor="black"
+            :iconColor="accentColor2"
+            elevation="0"
+            size="small"
+            rounded="1"
+            :tooltip-disabled="mobile"
+            alert
+          />
+        <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
+          <v-icon size="x-large">mdi-menu</v-icon>
+          <v-menu
+            activator="parent"
             >
-              <template v-slot:activator="{ props }">
-                <div id="map-show-hide-controls">
-                  <v-btn
-                    v-bind="props"
-                    class="mx-2 mt-5"
-                    elevation="2"
-                    color="white"
-                    icon
-                    style="outline: 2px solid #b6b6b6;"
-                    rounded="0"
-                    size="x-small"
-                  >
-                    <template v-slot:default>
-                      <v-icon
-                        color="black"
-                        size="x-large"
-                      >mdi-tune-variant</v-icon>
-                    </template>
-                  </v-btn>
-                </div>
-              </template>
-              <v-card class="controls-card">
-                <font-awesome-icon
-                  style="position:absolute;right:16px;cursor:pointer"
-                  icon="square-xmark"
-                  size="xl"
-                  @click="showControls = false"
-                  @keyup.enter="showControls = false"
-                  :color="accentColor2"
-                  tabindex="0"
-                ></font-awesome-icon>
-                <div
-                  id="opacity-slider-container"
-                  class="mt-5"
+            <v-list>
+              <v-list-item 
+                tabindex="0"
+                aria-label="See recent changes"
+                @click="showChanges = true"
+                @keyup.enter="showChanges = true"
                 >
-                  <div id="opacity-slider-label">TEMPO data opacity</div>
-                  <v-slider
-                      v-model="opacity"
-                      :min="0"
-                      :max="1"
-                      color="#c10124"
-                      density="compact"
-                      hide-details
-                      class="mb-4"
-                    >
-                  </v-slider>
-                </div>
-                <div
-                  class="d-flex flex-row align-center justify-space-between"
+                What's New
+              </v-list-item>
+
+              <v-list-item 
+                tabindex="0" 
+                aria-label="Show introduction"
+                @click="() => {introSlide = 1; inIntro = true;}"
+                @keyup.enter="() => {introSlide = 1; inIntro = true;}"
                 >
-                  <v-checkbox
-                    v-model="showFieldOfRegard"
-                    @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
-                    label="TEMPO Field of Regard"
-                    color="#c10124"
-                    hide-details
-                  />
-                  <info-button>
-                    <p>
-                      The TEMPO satellite observes the atmosphere over North America, from the Atlantic Ocean to the Pacific Coast, and from roughly Mexico City to central Canada. 
-                    </p>
-                    <p>
-                      The TEMPO Field of Regard (in <span class="text-red">red</span>, currently <em>{{ showFieldOfRegard ? 'visible' : "hidden" }}</em>)
-                      is the area over which the satellite takes measurements. 
-                    </p>
-                    </info-button>
-                  </div>
-                  <div class="d-flex flex-row align-center justify-space-between">
-                  <v-checkbox
-                    v-model="showClouds"
-                    @keyup.enter="showClouds = !showClouds"
-                    :disabled="!cloudDataAvailable"
-                    :label="cloudDataAvailable ? 'Show Cloud Mask' : 'No Cloud Data Available'"
-                    color="#c10124"
-                    hide-details
-                  />
-                  <info-button>
-                    <p>
-                      The cloud mask shows where the satellite could not measure NO<sub>2</sub> because of cloud cover. 
-                    </p>
-                  </info-button>
-                </div>
-                  <div class="d-flex flex-row align-center justify-space-between">
-                    <v-checkbox
-                    :disabled="!highresAvailable"
-                    v-model="useHighRes"
-                    @keyup.enter="useHighRes = !useHighRes"
-                    label="Use High Resolution Data"
-                    color="#c10124"
-                    hide-details
-                  />
-                  <info-button>
-                    <p>
-                      By default we show data at 1/2 resolution for performance. 
-                    </p>
-                  </info-button>
-                </div>
-                  <div v-if="showExtendedRangeFeatures && extendedRangeAvailable" class="d-flex flex-row align-center justify-space-between">
-                    <v-checkbox
-                    :disabled="!extendedRangeAvailable"
-                    v-model="showExtendedRange"
-                    @keyup.enter="showExtendedRange = !showExtendedRange"
-                    label="Use Extended NO2 range"
-                    color="#c10124"
-                    hide-details
-                  />
-                  <info-button>
-                    <p>
-                      If data is available, show map with extended range of NO<sub>2</sub> values.
-                    </p>
-                  </info-button>
-                </div>
-              </v-card>
-            </v-menu>
-            <div id="location-and-sharing">
-            <location-search
-              v-model="searchOpen"
-              small
-              stay-open
-              buttonSize="xl"
-              persist-selected
-              :search-provider="geocodingInfoForSearchLimited"
-              @set-location="(feature: MapBoxFeature) => {
-                if (feature !== null) {
-                  map?.setView([feature.center[1], feature.center[0]], 12);
-                  setMarker([feature.center[1], feature.center[0]]);
-                }
-              }"
-              @error="(error: string) => searchErrorMessage = error"
-            ></location-search>
-          </div>
-          
-          <div id="la-fires">
-            <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
-              {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
-            </v-btn>
-            <v-btn v-if="smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
-              🔥
-            </v-btn>
-            <cds-dialog title="Extreme Events" v-model="showLADialog" :color="accentColor2">
-              <v-row>
-                <v-col>
-                  <p>
-                    Some events like the January 2025 Los Angeles fires generate so much smoke 
-                    and pollution that NO<sub>2</sub> levels can greatly
-                     exceed the default range used in the color scale 
-                     for the TEMPO-lite viewer. To show more clearly where 
-                     the very highest levels of NO<sub>2</sub> are present, 
-                     you can use an extended color stretch.   
-                  </p>
-                  <p>
-                    By default we display values from 0.01-1.5&times;10<sup>16</sup> molecules per square centimeter, 
-                    check the box here to double the max of the range to 3&times;10<sup>16</sup> molecules per square centimeter. 
-                    The extended range will be available on dates with extreme events like the Los Angeles fire outbreaks.
-                  </p>
+                  Introduction
+              </v-list-item>
               
-              <v-checkbox v-model="showExtendedRange" label="Use extended data range"/>
-              
-              <!-- Note on clouds. Some times (such as January 19th) smoke is detected as "clouds" and so those pixels get removed. 
-              We (CosmicDS) currently do not have an algorithmic way retrieve the nitrogen dioxide column in these cases and so 
-              those pixels are masked out in the "cloud mask". -->
-          
-                </v-col>
-              </v-row>
-              <v-row class="justify-center">
-  
-                <v-btn :color="accentColor2" @click="goToLA" @keyup.enter="goToLA"> Go To Los Angeles</v-btn>
-  
-              </v-row>
-            </cds-dialog>
-          </div>
-          
-          </div>
-          <colorbar 
-            v-if="display.width.value > 750"
-            label="Amount of NO2"
-            backgroundColor="transparent"
-            :nsteps="255"
-            :cmap="cmapNO2"
-            start-value="1"
-            :end-value="showingExtendedRange ? '300' : '150'"
-            :extend="true"
-          >
-            <template v-slot:label>
-                <div style="text-align: center;">Amount of NO&#x2082;<br><span class="unit-label">(10&sup1;&#x2074; molecules/cm&sup2;)</span></div>
-            </template>
-          </colorbar>
-          
-  
-        </div>
-          <div id="when" class="big-label">when</div>
-          <div id="slider-row">
-            <v-slider
-              class="time-slider"
-              v-model="timeIndex"
-              :min="minIndex"
-              :max="maxIndex"
-              :step="1"
-              color="#068ede95"
-              thumb-label="always"
-              :track-size="10"
-              show-ticks="always"
-              hide-details
-              :disabled="loadedImagesProgress < 100"
-            >
-              <template v-slot:thumb-label>
-                <div class="thumb-label">
-                  {{ thumbLabel }}
-                </div>
-              </template>
-            </v-slider>
-            <icon-button
-              id="play-pause"
-              :fa-icon="playing ? 'pause' : 'play'"
-              fa-size="sm"
-              @activate="playing = !playing"
-            ></icon-button>
-          </div>
-  
-          
-  
-         <div id="user-options">
-          <div id="all-dates">
-            <h2>Select a Date</h2>  
-            <div class="d-flex flex-row align-center">
-              <v-radio-group v-model="radio">
-                <date-picker
-                  ref="calendar"
-                  :model-value="singleDateSelected"
-                  @internal-model-change="(value: Date) => {
-                    if (value != null && value.getTime() != singleDateSelected.getTime()) {
-                      radio = null;
-                      singleDateSelected = value;
-                      calendar?.closeMenu();
-                    }
-                  }"
-                  :allowed-dates="uniqueDays"
-                  :clearable="false"
-                  :enable-time-picker="false"
-                  :multi-dates="false"
-                  :transitions="false"
-                  :format="(date: Date | null) => date?.toDateString()"
-                  :preview-format="(date: Date | null) => date?.toDateString()"
-                  no-today
-                  dark
+              <v-list-item 
+                tabindex="0"
+                aria-label="Show user guide"
+                @click="() => {introSlide = 4; inIntro = true;}"
+                @keyup.enter="() => {introSlide = 4; inIntro = true;}"
                 >
-                  <template #action-buttons></template>
-                </date-picker>
-              </v-radio-group>
-            </div>        
-            <!-- create a list of the uniqueDays -->
-            <!-- <v-select
-              :modelValue="singleDateSelected"
-              :disabled="radio !== 0"
-              :items="uniqueDays"
-              item-title="title"
-              item-value="value"
-              label="Select a Date"
-              @update:model-value="(e) => { singleDateSelected = e;}"
-              hide-details
-              variant="solo"
-            ></v-select> -->
-            <!-- add buttons to increment and decrement the singledateselected -->
-            <div class="d-flex flex-row align-center my-2">
-              <v-tooltip :disabled="touchscreen" text="Previous Date">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    class="rounded-icon-wrapper"
-                    @click="moveBackwardOneDay"
-                    @keyup.enter="moveBackwardOneDay"
-                    :disabled="singleDateSelected === uniqueDays[0]"
-                    color="#009ade"
-                    variant="outlined"
-                    elevation="0"
-                    size="md"
-                  >
-                    <v-icon>mdi-chevron-double-left</v-icon>
-                  </v-btn>
-                </template>
-              </v-tooltip>
-              <v-spacer></v-spacer>
-              <v-tooltip :disabled="touchscreen" text="Next Date">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    class="rounded-icon-wrapper"
-                    @click="moveForwardOneDay"
-                    @keyup.enter="moveForwardOneDay"
-                    :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                    color="#009ade"
-                    variant="outlined"
-                    elevation="0"
-                    size="md"
-                  >
-                    <v-icon>mdi-chevron-double-right</v-icon>
-                  </v-btn>
-                </template>
-              </v-tooltip>
-            </div>
-            <v-progress-linear
-              v-if="loadedImagesProgress < 101"
-              v-model="loadedImagesProgress"
-              color="#092088"
-              height="20"
-            >
-            <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
-            <span v-else>Data Loaded</span>
-            </v-progress-linear>
-            <!-- <v-switch label="LA fires" v-model="showExtendedRange" /> -->
-          </div>
-  
-          <hr style="border-color: grey">
-  
-  
-           <div id="date-radio">
-             <!-- make a v-radio-group with 3 options -->
-            <h2>Notable Dates</h2>
-            <v-radio-group
-              v-model="radio"
-              row
-            >
-              <div v-for = "(event, index) in interestingEvents" :key="index" class="d-flex flex-row align-center">
-                <v-radio
-                  :class="event.highlighted ? 'highlighted' : ''"
-                  :label="event.label"
-                  :value="index"
-                  @keyup.enter="radio = index"
-                >
-                </v-radio>
-                <info-button>
-                  <div style="display: inline-block; margin: 0; padding: 0;" v-html="event.info"></div>
-                </info-button>
-              </div>
+                User Guide
+              </v-list-item>
               
-            </v-radio-group>
-          </div>
-          
-          <hr style="border-color: grey;"  v-if="radio !== null ">
-          
-          <div id="locations-of-interest" v-if="radio !== null">
-            <h3 class="mb-1">Featured Events for {{ dateStrings[radio] }}</h3>
-            <v-radio-group
-              v-if="radio !== null"
-              v-model="sublocationRadio"
-              row
-            >
-            <div
-              v-for="(loi, index) in locationsOfInterest[radio]" 
-              v-bind:key="index" 
-              class="sublocation-radio-wrapper d-flex flex-row align-center space-between">
-              <v-radio
-                class="sublocation-radio"
-                :label="loi.text"
-                :value="index"
-                @keyup.enter="sublocationRadio = index"
-              ></v-radio>
-              <info-button>
-                <p v-html="locationsOfInterestText[radio][index]"></p>
-              </info-button>
-            </div>
-            </v-radio-group>
-          </div>
-  
-          <hr style="border-color: grey;">
-          <div id="bottom-options">
-            <br>
-            <v-select
-              v-model="selectedTimezone"
-              label="Timezone"
-              :items="timezoneOptions"
-              item-title="name"
-              item-value="tz"
-            ></v-select>
-            <v-checkbox
-              v-if="false"
-              :disabled="!highresAvailable"
-              v-model="useHighRes"
-              @keyup.enter="useHighRes = !useHighRes"
-              label="Use High Resolution Data"
-              color="#c10124"
-              hide-details
-            />
-            <v-checkbox
-              v-if="showExtendedRangeFeatures && extendedRangeAvailable"
-              :disabled="!extendedRangeAvailable"
-              v-model="showExtendedRange"
-              @keyup.enter="showExtendedRange = !showExtendedRange"
-              label="Use Extended NO2 range"
-              color="#c10124"
-              hide-details
-            />
-          </div>
-        </div>
-        
-        <div id="information">
-        <article>
-          <h2>TEMPO NO<sub>2</sub> Data</h2>
-          <p>
-            <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer" >
-            TEMPO</a>, a collaboration between the Smithsonian and NASA, is the first space-based probe to measure air pollution hourly over North America at neighborhood scales. NO<sub>2</sub> (nitrogen dioxide) is one of the pollutants detected by TEMPO. It is produced by wildfires and the burning of fossil fuels. NO<sub>2</sub> contributes to the formation of harmful ground-level ozone and toxic particulates in the air we breathe.
-          </p>
-  
-            <div class="d-flex flex-row justify-space-between">
-              <cds-dialog
-                title="Credits"
-                id="credits-dialog"
-                v-model="showCredits"
-                activator="parent"
-                :scrim="false"
-                location="center center"
-                :color="accentColor2"
-              >
-                <h4 class="mb-2"><a href="https://tempo.si.edu/" target="_blank" rel="noopener noreferrer">TEMPO</a> Team Acknowledgments:</h4>
-                <p>
-                  Caroline Nowlan, Aaron Naeger, and Erika Wright provided dates and featured events of interest in the TEMPO data.
-                </p>
-                <p>
-                  Xiong Liu provided the L3 version 2 TEMPO data files.
-                </p>
-                <p>
-                  Heesung Chong provided the shape file for the TEMPO field of regard.
-                </p>
-  
-                <p class="my-3">NASA's Scientific Visualization Studio provided the TEMPO NO<sub>2</sub> colormap.</p>
-  
-                <h4 class="mb-2"><a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">CosmicDS</a> Team:</h4> 
-  
-                John Lewis<br>
-                Jonathan Foster<br>
-                Pat Udomprasert<br>
-                Jon Carifio<br>
-                Alyssa Goodman<br>
-                Erika Wright<br>
-                Mary Dussault<br>
-                Harry Houghton<br>
-                Evaluator: Sue Sunbury<br>
-  
-                <funding-acknowledgement class="my-3"></funding-acknowledgement>
-              </cds-dialog>
-  
-            <cds-dialog
-              id="user-guide-dialog"
-              v-model="showUserGuide"
-              :scrim="false"
-              location="center center"
-              title="User Guide"
-              :color="accentColor2"
-            >
-              <p>
-                Do consectetur consequat dolore esse nulla .
-              </p>
-  
-              <p>
-                Reprehenderit sint ipsum laborum in reprehenderit sunt eu pariatur ipsum tempor .
-              </p>
-  
-              <p>
-                Ex laboris fugiat ad duis eu ipsum cupidatat veniam fugiat .
-              </p>
-            </cds-dialog>
-            
-            
-            <cds-dialog
-              id="about-data-dialog"
-              v-model="showAboutData"
-              :scrim="false"
-              location="center center"
-              title="Data source and processing"
-              short-title="About Data"
-              :color="accentColor2"
-            >
-              <p>
-                This visualization of the TEMPO satellite NO<sub>2</sub> Tropospheric Column Density data is derived from Level 3 data files obtained from the 
-                <a href="https://asdc.larc.nasa.gov/project/TEMPO" target="_blank" rel="noopener noreferrer">NASA ASDC TEMPO Data Products Page</a>.
-              </p>
-              <br />
-              <p>
-                The data has been processed and visualized by the CosmicDS team at the Harvard-Smithsonian Center for Astrophysics. The images displayed have undergone pre-processing to filter out erroneous data, and a 50% cloud cover mask has been applied. 
-                For performance optimization, the data resolution has been halved and reprojected to a Web Mercator projection to ensure compatibility with 
-                <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet.js</a>.
-              </p>
-              <br />
-              <p>
-                The data is rendered using the color map provided by NASA's Scientific Visualization Studio.
-              </p>
-              <br />
-              <p>
-                All data processing scripts are available on 
-                <a href="https://github.com/johnarban/tempo_processing_scripts" target="_blank" rel="noopener noreferrer">GitHub</a>.
-              </p>
-            </cds-dialog>
-  
-            <!-- make small inline show introduction link button -->
-            <!-- <a href="#" @click="inIntro = true" @keyup.enter="inIntro = true" style="right: 0;">
-              Show Introduction
-            </a> -->
-          </div>
-  
-        </article>
-        </div>
-        
-      </div>
-      <div id="body-logos">
-        <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
-        ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
-          /></a>
-        <credit-logos/>
+              <v-list-item 
+                tabindex="0"
+                aria-label="Show dialog telling about the data"
+                @click="showAboutData = true"
+                @keyup.enter="showAboutData = true"
+                >
+                About the Data
+              </v-list-item>
+              
+              <v-list-item 
+                tabindex="0" 
+                aria-label="Show credits"
+                @click="showCredits = true"
+                @keyup.enter="showCredits = true"
+                >
+                  Credits
+              </v-list-item>
+              
+            </v-list>
+          </v-menu>
+        </v-btn>
       </div>
     </div>
-  </v-app>
-  </template>
+      <div id="where" class="big-label">where</div>
+      <div id="map-container">
+        <colorbar-horizontal
+          v-if="display.width.value <= 750"
+          label="Amount of NO2"
+          backgroundColor="transparent"
+          :nsteps="255"
+          :cmap="cmapNO2"
+          start-value="1"
+          :end-value="showingExtendedRange ? '300' : '150'"
+          :extend="true"
+        >
+        <template v-slot:label>
+              <div style="text-align: center;">Amount of NO&#x2082;&nbsp;<span class="unit-label">(10&sup1;&#x2074; mol/cm&sup2;)</span></div>
+        </template>
+        </colorbar-horizontal>
+        <div id="map-contents" style="width:100%; height: 100%;">
+          <div id="map">
+            <v-overlay
+              :modelValue="loadedImagesProgress < 100"
+              style="z-index: 1000;"
+              class="align-center justify-center"
+              contained
+              opacity=".8"
+              >
+              <!-- Generated by Copilot -->
+              <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
+                <label class="text-black" for="loading-circle-progress">Loading Data...</label>
+                <v-progress-circular
+                  id="loading-circle-progress"
+                  style="z-index: 1000;"
+                  :size="100"
+                  :width="15"
+                  :model-value="loadedImagesProgress"
+                  color="#092088"
+                >
+                {{ loadedImagesProgress.toFixed(0) }}%
+              </v-progress-circular>
+              </div>
+            </v-overlay>
+          </div>
+
+          <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
+          <!-- show hide cloud data, disable if none is available -->
+
+          <v-menu
+            id="map-controls"
+            v-model="showControls"
+            :close-on-content-click="false"
+          >
+            <template v-slot:activator="{ props }">
+              <div id="map-show-hide-controls">
+                <v-btn
+                  v-bind="props"
+                  class="mx-2 mt-5"
+                  elevation="2"
+                  color="white"
+                  icon
+                  style="outline: 2px solid #b6b6b6;"
+                  rounded="0"
+                  size="x-small"
+                >
+                  <template v-slot:default>
+                    <v-icon
+                      color="black"
+                      size="x-large"
+                    >mdi-tune-variant</v-icon>
+                  </template>
+                </v-btn>
+              </div>
+            </template>
+            <v-card class="controls-card">
+              <font-awesome-icon
+                style="position:absolute;right:16px;cursor:pointer"
+                icon="square-xmark"
+                size="xl"
+                @click="showControls = false"
+                @keyup.enter="showControls = false"
+                :color="accentColor2"
+                tabindex="0"
+              ></font-awesome-icon>
+              <div
+                id="opacity-slider-container"
+                class="mt-5"
+              >
+                <div id="opacity-slider-label">TEMPO data opacity</div>
+                <v-slider
+                    v-model="opacity"
+                    :min="0"
+                    :max="1"
+                    color="#c10124"
+                    density="compact"
+                    hide-details
+                    class="mb-4"
+                  >
+                </v-slider>
+              </div>
+              <div
+                class="d-flex flex-row align-center justify-space-between"
+              >
+                <v-checkbox
+                  v-model="showFieldOfRegard"
+                  @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
+                  label="TEMPO Field of Regard"
+                  color="#c10124"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    The TEMPO satellite observes the atmosphere over North America, from the Atlantic Ocean to the Pacific Coast, and from roughly Mexico City to central Canada. 
+                  </p>
+                  <p>
+                    The TEMPO Field of Regard (in <span class="text-red">red</span>, currently <em>{{ showFieldOfRegard ? 'visible' : "hidden" }}</em>)
+                    is the area over which the satellite takes measurements. 
+                  </p>
+                  </info-button>
+                </div>
+                <div class="d-flex flex-row align-center justify-space-between">
+                <v-checkbox
+                  v-model="showClouds"
+                  @keyup.enter="showClouds = !showClouds"
+                  :disabled="!cloudDataAvailable"
+                  :label="cloudDataAvailable ? 'Show Cloud Mask' : 'No Cloud Data Available'"
+                  color="#c10124"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    The cloud mask shows where the satellite could not measure NO<sub>2</sub> because of cloud cover. 
+                  </p>
+                </info-button>
+              </div>
+                <div class="d-flex flex-row align-center justify-space-between">
+                  <v-checkbox
+                  :disabled="!highresAvailable"
+                  v-model="useHighRes"
+                  @keyup.enter="useHighRes = !useHighRes"
+                  label="Use High Resolution Data"
+                  color="#c10124"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    By default we show data at 1/2 resolution for performance. 
+                  </p>
+                </info-button>
+              </div>
+                <div v-if="showExtendedRangeFeatures && extendedRangeAvailable" class="d-flex flex-row align-center justify-space-between">
+                  <v-checkbox
+                  :disabled="!extendedRangeAvailable"
+                  v-model="showExtendedRange"
+                  @keyup.enter="showExtendedRange = !showExtendedRange"
+                  label="Use Extended NO2 range"
+                  color="#c10124"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    If data is available, show map with extended range of NO<sub>2</sub> values.
+                  </p>
+                </info-button>
+              </div>
+            </v-card>
+          </v-menu>
+          <div id="location-and-sharing">
+          <location-search
+            v-model="searchOpen"
+            small
+            stay-open
+            buttonSize="xl"
+            persist-selected
+            :search-provider="geocodingInfoForSearchLimited"
+            @set-location="(feature: MapBoxFeature) => {
+              if (feature !== null) {
+                map?.setView([feature.center[1], feature.center[0]], 12);
+                setMarker([feature.center[1], feature.center[0]]);
+              }
+            }"
+            @error="(error: string) => searchErrorMessage = error"
+          ></location-search>
+        </div>
+        
+        <div id="la-fires">
+          <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
+            {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
+          </v-btn>
+          <v-btn v-if="smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
+            🔥
+          </v-btn>
+          <cds-dialog title="Extreme Events" v-model="showLADialog" :color="accentColor2">
+            <v-row>
+              <v-col>
+                <p>
+                  Some events like the January 2025 Los Angeles fires generate so much smoke 
+                  and pollution that NO<sub>2</sub> levels can greatly
+                    exceed the default range used in the color scale 
+                    for the TEMPO-lite viewer. To show more clearly where 
+                    the very highest levels of NO<sub>2</sub> are present, 
+                    you can use an extended color stretch.   
+                </p>
+                <p>
+                  By default we display values from 0.01-1.5&times;10<sup>16</sup> molecules per square centimeter, 
+                  check the box here to double the max of the range to 3&times;10<sup>16</sup> molecules per square centimeter. 
+                  The extended range will be available on dates with extreme events like the Los Angeles fire outbreaks.
+                </p>
+            
+            <v-checkbox v-model="showExtendedRange" label="Use extended data range"/>
+            
+            <!-- Note on clouds. Some times (such as January 19th) smoke is detected as "clouds" and so those pixels get removed. 
+            We (CosmicDS) currently do not have an algorithmic way retrieve the nitrogen dioxide column in these cases and so 
+            those pixels are masked out in the "cloud mask". -->
+        
+              </v-col>
+            </v-row>
+            <v-row class="justify-center">
+
+              <v-btn :color="accentColor2" @click="goToLA" @keyup.enter="goToLA"> Go To Los Angeles</v-btn>
+
+            </v-row>
+          </cds-dialog>
+        </div>
+        
+        </div>
+        <colorbar 
+          v-if="display.width.value > 750"
+          label="Amount of NO2"
+          backgroundColor="transparent"
+          :nsteps="255"
+          :cmap="cmapNO2"
+          start-value="1"
+          :end-value="showingExtendedRange ? '300' : '150'"
+          :extend="true"
+        >
+          <template v-slot:label>
+              <div style="text-align: center;">Amount of NO&#x2082;<br><span class="unit-label">(10&sup1;&#x2074; molecules/cm&sup2;)</span></div>
+          </template>
+        </colorbar>
+        
+
+      </div>
+        <div id="when" class="big-label">when</div>
+        <div id="slider-row">
+          <v-slider
+            class="time-slider"
+            v-model="timeIndex"
+            :min="minIndex"
+            :max="maxIndex"
+            :step="1"
+            color="#068ede95"
+            thumb-label="always"
+            :track-size="10"
+            show-ticks="always"
+            hide-details
+            :disabled="loadedImagesProgress < 100"
+          >
+            <template v-slot:thumb-label>
+              <div class="thumb-label">
+                {{ thumbLabel }}
+              </div>
+            </template>
+          </v-slider>
+          <icon-button
+            id="play-pause"
+            :fa-icon="playing ? 'pause' : 'play'"
+            fa-size="sm"
+            @activate="playing = !playing"
+          ></icon-button>
+        </div>
+
+        
+
+        <div id="user-options">
+        <div id="all-dates">
+          <h2>Select a Date</h2>  
+          <div class="d-flex flex-row align-center">
+            <v-radio-group v-model="radio">
+              <date-picker
+                ref="calendar"
+                :model-value="singleDateSelected"
+                @internal-model-change="(value: Date) => {
+                  if (value != null && value.getTime() != singleDateSelected.getTime()) {
+                    radio = null;
+                    singleDateSelected = value;
+                    calendar?.closeMenu();
+                  }
+                }"
+                :allowed-dates="uniqueDays"
+                :clearable="false"
+                :enable-time-picker="false"
+                :multi-dates="false"
+                :transitions="false"
+                :format="(date: Date | null) => date?.toDateString()"
+                :preview-format="(date: Date | null) => date?.toDateString()"
+                no-today
+                dark
+              >
+                <template #action-buttons></template>
+              </date-picker>
+            </v-radio-group>
+          </div>        
+          <!-- create a list of the uniqueDays -->
+          <!-- <v-select
+            :modelValue="singleDateSelected"
+            :disabled="radio !== 0"
+            :items="uniqueDays"
+            item-title="title"
+            item-value="value"
+            label="Select a Date"
+            @update:model-value="(e) => { singleDateSelected = e;}"
+            hide-details
+            variant="solo"
+          ></v-select> -->
+          <!-- add buttons to increment and decrement the singledateselected -->
+          <div class="d-flex flex-row align-center my-2">
+            <v-tooltip :disabled="touchscreen" text="Previous Date">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  class="rounded-icon-wrapper"
+                  @click="moveBackwardOneDay"
+                  @keyup.enter="moveBackwardOneDay"
+                  :disabled="singleDateSelected === uniqueDays[0]"
+                  color="#009ade"
+                  variant="outlined"
+                  elevation="0"
+                  size="md"
+                >
+                  <v-icon>mdi-chevron-double-left</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <v-spacer></v-spacer>
+            <v-tooltip :disabled="touchscreen" text="Next Date">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  class="rounded-icon-wrapper"
+                  @click="moveForwardOneDay"
+                  @keyup.enter="moveForwardOneDay"
+                  :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                  color="#009ade"
+                  variant="outlined"
+                  elevation="0"
+                  size="md"
+                >
+                  <v-icon>mdi-chevron-double-right</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
+          <v-progress-linear
+            v-if="loadedImagesProgress < 101"
+            v-model="loadedImagesProgress"
+            color="#092088"
+            height="20"
+          >
+          <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
+          <span v-else>Data Loaded</span>
+          </v-progress-linear>
+          <!-- <v-switch label="LA fires" v-model="showExtendedRange" /> -->
+        </div>
+
+        <hr style="border-color: grey">
+
+
+          <div id="date-radio">
+            <!-- make a v-radio-group with 3 options -->
+          <h2>Notable Dates</h2>
+          <v-radio-group
+            v-model="radio"
+            row
+          >
+            <div v-for = "(event, index) in interestingEvents" :key="index" class="d-flex flex-row align-center">
+              <v-radio
+                :class="event.highlighted ? 'highlighted' : ''"
+                :label="event.label"
+                :value="index"
+                @keyup.enter="radio = index"
+              >
+              </v-radio>
+              <info-button>
+                <div style="display: inline-block; margin: 0; padding: 0;" v-html="event.info"></div>
+              </info-button>
+            </div>
+            
+          </v-radio-group>
+        </div>
+        
+        <hr style="border-color: grey;"  v-if="radio !== null ">
+        
+        <div id="locations-of-interest" v-if="radio !== null">
+          <h3 class="mb-1">Featured Events for {{ dateStrings[radio] }}</h3>
+          <v-radio-group
+            v-if="radio !== null"
+            v-model="sublocationRadio"
+            row
+          >
+          <div
+            v-for="(loi, index) in locationsOfInterest[radio]" 
+            v-bind:key="index" 
+            class="sublocation-radio-wrapper d-flex flex-row align-center space-between">
+            <v-radio
+              class="sublocation-radio"
+              :label="loi.text"
+              :value="index"
+              @keyup.enter="sublocationRadio = index"
+            ></v-radio>
+            <info-button>
+              <p v-html="locationsOfInterestText[radio][index]"></p>
+            </info-button>
+          </div>
+          </v-radio-group>
+        </div>
+
+        <hr style="border-color: grey;">
+        <div id="bottom-options">
+          <br>
+          <v-select
+            v-model="selectedTimezone"
+            label="Timezone"
+            :items="timezoneOptions"
+            item-title="name"
+            item-value="tz"
+          ></v-select>
+          <v-checkbox
+            v-if="false"
+            :disabled="!highresAvailable"
+            v-model="useHighRes"
+            @keyup.enter="useHighRes = !useHighRes"
+            label="Use High Resolution Data"
+            color="#c10124"
+            hide-details
+          />
+          <v-checkbox
+            v-if="showExtendedRangeFeatures && extendedRangeAvailable"
+            :disabled="!extendedRangeAvailable"
+            v-model="showExtendedRange"
+            @keyup.enter="showExtendedRange = !showExtendedRange"
+            label="Use Extended NO2 range"
+            color="#c10124"
+            hide-details
+          />
+        </div>
+      </div>
+      
+      <div id="information">
+      <article>
+        <h2>TEMPO NO<sub>2</sub> Data</h2>
+        <p>
+          <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer" >
+          TEMPO</a>, a collaboration between the Smithsonian and NASA, is the first space-based probe to measure air pollution hourly over North America at neighborhood scales. NO<sub>2</sub> (nitrogen dioxide) is one of the pollutants detected by TEMPO. It is produced by wildfires and the burning of fossil fuels. NO<sub>2</sub> contributes to the formation of harmful ground-level ozone and toxic particulates in the air we breathe.
+        </p>
+
+          <div class="d-flex flex-row justify-space-between">
+            <cds-dialog
+              title="Credits"
+              id="credits-dialog"
+              v-model="showCredits"
+              activator="parent"
+              :scrim="false"
+              location="center center"
+              :color="accentColor2"
+            >
+              <h4 class="mb-2"><a href="https://tempo.si.edu/" target="_blank" rel="noopener noreferrer">TEMPO</a> Team Acknowledgments:</h4>
+              <p>
+                Caroline Nowlan, Aaron Naeger, and Erika Wright provided dates and featured events of interest in the TEMPO data.
+              </p>
+              <p>
+                Xiong Liu provided the L3 version 2 TEMPO data files.
+              </p>
+              <p>
+                Heesung Chong provided the shape file for the TEMPO field of regard.
+              </p>
+
+              <p class="my-3">NASA's Scientific Visualization Studio provided the TEMPO NO<sub>2</sub> colormap.</p>
+
+              <h4 class="mb-2"><a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">CosmicDS</a> Team:</h4> 
+
+              John Lewis<br>
+              Jonathan Foster<br>
+              Pat Udomprasert<br>
+              Jon Carifio<br>
+              Alyssa Goodman<br>
+              Erika Wright<br>
+              Mary Dussault<br>
+              Harry Houghton<br>
+              Evaluator: Sue Sunbury<br>
+
+              <funding-acknowledgement class="my-3"></funding-acknowledgement>
+            </cds-dialog>
+
+          <cds-dialog
+            id="user-guide-dialog"
+            v-model="showUserGuide"
+            :scrim="false"
+            location="center center"
+            title="User Guide"
+            :color="accentColor2"
+          >
+            <p>
+              Do consectetur consequat dolore esse nulla .
+            </p>
+
+            <p>
+              Reprehenderit sint ipsum laborum in reprehenderit sunt eu pariatur ipsum tempor .
+            </p>
+
+            <p>
+              Ex laboris fugiat ad duis eu ipsum cupidatat veniam fugiat .
+            </p>
+          </cds-dialog>
+          
+          
+          <cds-dialog
+            id="about-data-dialog"
+            v-model="showAboutData"
+            :scrim="false"
+            location="center center"
+            title="Data source and processing"
+            short-title="About Data"
+            :color="accentColor2"
+          >
+            <p>
+              This visualization of the TEMPO satellite NO<sub>2</sub> Tropospheric Column Density data is derived from Level 3 data files obtained from the 
+              <a href="https://asdc.larc.nasa.gov/project/TEMPO" target="_blank" rel="noopener noreferrer">NASA ASDC TEMPO Data Products Page</a>.
+            </p>
+            <br />
+            <p>
+              The data has been processed and visualized by the CosmicDS team at the Harvard-Smithsonian Center for Astrophysics. The images displayed have undergone pre-processing to filter out erroneous data, and a 50% cloud cover mask has been applied. 
+              For performance optimization, the data resolution has been halved and reprojected to a Web Mercator projection to ensure compatibility with 
+              <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet.js</a>.
+            </p>
+            <br />
+            <p>
+              The data is rendered using the color map provided by NASA's Scientific Visualization Studio.
+            </p>
+            <br />
+            <p>
+              All data processing scripts are available on 
+              <a href="https://github.com/johnarban/tempo_processing_scripts" target="_blank" rel="noopener noreferrer">GitHub</a>.
+            </p>
+          </cds-dialog>
+
+          <!-- make small inline show introduction link button -->
+          <!-- <a href="#" @click="inIntro = true" @keyup.enter="inIntro = true" style="right: 0;">
+            Show Introduction
+          </a> -->
+        </div>
+
+      </article>
+      </div>
+      
+    </div>
+    <div id="body-logos">
+      <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
+      ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
+        /></a>
+      <credit-logos/>
+    </div>
+  </div>
+</v-app>
+</template>
   
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
