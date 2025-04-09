@@ -858,14 +858,68 @@ const display = useDisplay();
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 const calendar = ref<DatePickerInstance | null>(null);
   
-  type SheetType = "text" | "video" | null;
-  type Timeout = ReturnType<typeof setTimeout>;
+type SheetType = "text" | "video" | null;
+type Timeout = ReturnType<typeof setTimeout>;
+
+
+/**************
+ * UI Setup
+ *************/
+const urlParams = new URLSearchParams(window.location.search);
+// const hash = window.location.hash;
+const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
+const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
+const extendedRange = ref(window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"); //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
+const hideIntro = urlParams.get("hideintro") === "true";
+const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';  
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore --> msPointerEnabled may not be defined in window.navigator
+const touchscreen = ref( ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled );
+
+
+function clearUrl(hash = false) {
+  const newUrl = location.origin + location.pathname  + (hash ? location.hash : '');
+  window.history.replaceState({}, '', newUrl);
+}
+clearUrl(true);
+
+
+const introSlide = ref(1);
+const inIntro = ref(!WINDOW_DONTSHOWINTRO);
+const dontShowIntro = ref(WINDOW_DONTSHOWINTRO);
+const showNotice = ref(true);
+const sheet = ref<SheetType>(null);
+const accentColor = ref("#068ede");
+const accentColor2 = ref("#ffcc33");
+
+const showTextSheet = computed({
+  get() {
+    return sheet.value === 'text';
+  },
+  set(_value: boolean) {
+    selectSheet('text');
+  }
+});
+
+const cssVars = computed(() => {
+  return {
+    '--accent-color': accentColor.value,
+    '--accent-color-2': accentColor2.value,
+    '--app-content-height': showTextSheet.value ? '66%' : '100%',
+  };
+});
+
+
+
+function zpad(n: number, width: number = 2, character: string = "0"): string {
+  return n.toString().padStart(width, character);
+}
   
-  
-  
-import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
-  
-  
+/************
+ * TIMESTAMP SETUP
+ ************/
+import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";  
+
 const erdTimestamps = ref<number[]>([]);
 const newTimestamps = ref<number[]>([]);
 const cloudTimestamps = ref<number[]>([]);
@@ -918,6 +972,9 @@ const fosterTimestamps = ref<number[]>([
   
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 const timestamps = ref<number[]>(fosterTimestamps.value);
+const extendedRangeTimestamps = ref<number[]>([]);
+const showExtendedRange = ref(extendedRange.value);
+const useHighRes = ref(false);
 const { 
   timeIndex,
   timestamp,
@@ -931,32 +988,71 @@ const {
   moveBackwardOneDay,
   moveForwardOneDay,
   nearestDateIndex } = useUniqueTimeSelection(timestamps);
-  
-const urlParams = new URLSearchParams(window.location.search);
-const hideIntro = urlParams.get("hideintro") === "true";
-const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';
-  
+
+const timestampsLoaded = ref(false);
+async function updateTimestamps() {
+  getExtendedRangeTimestamps().then(ts => {
+    extendedRangeTimestamps.value = ts;
+  });
+  getTimestamps().then((ts) => {
+    erdTimestamps.value = ts.early_release;
+    newTimestamps.value = ts.released;
+    timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+    cloudTimestamps.value = ts.clouds;
+  });
+  return ;
+}
+updateTimestamps().then(() => {timestampsLoaded.value = true;});
+updateTimestamps().then(() => {timestampsLoaded.value = true;})
+  .then(() => {
+    if (window.location.hash.includes("extreme-events")) {
+      nextTick(() => {
+        activateExtremeEvents();
+      });
+    }
+  });
+    
+
+
+
+
+/************
+ * INITIAL LOCATIONS SETUP
+ ************/
+
 const initLat = parseFloat(urlParams.get("lat") || '40.044');
 const initLon = parseFloat(urlParams.get("lon") || '-98.789');
 const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
-  
-// const hash = window.location.hash;
-const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
-const extendedRange = ref(window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"); //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
-// set the url to be only the base url, path and hash
-const newUrl = location.origin + location.pathname + location.hash;
-window.history.replaceState({}, '', newUrl);
-  
+const initState = ref({
+  loc: [initLat, initLon] as LatLngExpression,
+  zoom: initZoom,
+  t: initTime ? +initTime : null
+});
+
+
 const homeLat =  40.044;
 const homeLon =  -98.789;
 const homeZoom =  4;
+const homeState = ref({
+  loc: [homeLat, homeLon] as LatLngExpression,
+  zoom: homeZoom,
+  t: null as number | null
+});
+
+  
+
+
+const radio = ref<number | null>(null);
+const sublocationRadio = ref<number | null>(null);
+
 
 import { useLeafletBounds } from './composables/useLeafletBounds';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { leafletBounds: imageBounds, boundsArray: bounds } = useLeafletBounds(date);
 
   
+
 const fieldOfRegardLayer = L.geoJSON(
     fieldOfRegard as GeoJSON.GeometryCollection,
     {
@@ -969,46 +1065,12 @@ const fieldOfRegardLayer = L.geoJSON(
     }
 ) as L.Layer;
   
-const initState = ref({
-  loc: [initLat, initLon] as LatLngExpression,
-  zoom: initZoom,
-  t: initTime ? +initTime : null
-});
-  
-const homeState = ref({
-  loc: [homeLat, homeLon] as LatLngExpression,
-  zoom: homeZoom,
-  t: null as number | null
-});
-const sheet = ref<SheetType>(null);
-  
-  
-  
-const accentColor = ref("#068ede");
-const accentColor2 = ref("#ffcc33");
-  
-const introSlide = ref(1);
-const inIntro = ref(!WINDOW_DONTSHOWINTRO);
-const dontShowIntro = ref(WINDOW_DONTSHOWINTRO);
-  
-const showNotice = ref(true);
-const radio = ref<number | null>(null);
-const sublocationRadio = ref<number | null>(null);
-const touchscreen = ref(false);
-const playInterval = ref<Timeout | null>(null);
-// const map = ref<Map | null>(null);
-// const basemap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
-// const interestingEvents = ref(interestingEvents);
+
+
 
 const selectedTimezone = ref("US/Eastern");
-  
-
-  
 const playing = ref(false);
-
-const timestampsLoaded = ref(false);
-
-
+const playInterval = ref<Timeout | null>(null);
 const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
 const showControls = ref(false);
@@ -1025,21 +1087,6 @@ const showChanges = ref(false);
 const showLADialog = ref(false);
 
   
-  
-// created() {
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-touchscreen.value = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-updateTimestamps().then(() => {timestampsLoaded.value = true;});
-updateTimestamps().then(() => {timestampsLoaded.value = true;})
-  .then(() => {
-    if (window.location.hash.includes("extreme-events")) {
-      nextTick(() => {
-        activateExtremeEvents();
-      });
-    }
-  });
-// },
 
 
 
@@ -1052,6 +1099,7 @@ const imageUrl = computed(() => {
     return customImageUrl.value;
   }
   const url = getTempoDataUrl(timestamp.value);
+  if (url === null) { return '';}
   return url + imageName.value;
 });
 
@@ -1069,17 +1117,9 @@ const cloudUrl = computed(() => {
 
 import { useImageOverlay } from "./composables/useLeafletImageOverlay";
 
-/** Image Options */
-const extendedRangeTimestamps = ref<number[]>([]);
-const showExtendedRange = ref(extendedRange.value);
-const useHighRes = ref(false);
-
 
 const opacity = ref(0.9);
 const preload = ref(true);
-
-
-
 const customImageUrl = ref("");
 const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds);
 const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds);
@@ -1175,22 +1215,10 @@ const mobile = computed(() => {
   return smallSize.value && touchscreen.value;
 });
   
-const cssVars = computed(() => {
-  return {
-    '--accent-color': accentColor.value,
-    '--accent-color-2': accentColor2.value,
-    '--app-content-height': showTextSheet.value ? '66%' : '100%',
-  };
-});
+
+
   
-const showTextSheet = computed({
-  get() {
-    return sheet.value === 'text';
-  },
-  set(_value: boolean) {
-    selectSheet('text');
-  }
-});
+
   
   
   
@@ -1380,17 +1408,7 @@ function pause() {
 //   return promises;
 // },
       
-async function updateTimestamps() {
-  getExtendedRangeTimestamps().then(ts => {
-    extendedRangeTimestamps.value = ts;
-  });
-  return getTimestamps().then((ts) => {
-    erdTimestamps.value = ts.early_release;
-    newTimestamps.value = ts.released;
-    timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
-    cloudTimestamps.value = ts.clouds;
-  });
-}
+
   
 function getCloudFilename(date: Date): string {
   const filename = getTempoFilename(date);
