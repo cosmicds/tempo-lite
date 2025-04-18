@@ -968,8 +968,6 @@ if (venue !== null) {
   // if they haven't visited this venue before, ping the server
   if (!venues.includes(venue)) {
     pingServer((venues ? venues  + ','  : '') + venue.replace(/,/g, '-'));
-  } else {
-    console.error("Venue is null or user has already visited");
   }
 }
 
