@@ -953,21 +953,21 @@ function pingServer(venue: string) {
     catch((error) => {
       console.error("Error pinging server", error);
     });
-  
-  window.localStorage.setItem("venues", venue);
 }
 
 const urlParams = new URLSearchParams(window.location.search);
 const hideIntro = urlParams.get("hideintro") === "true";
 const WINDOW_DONTSHOWINTRO = hideIntro ? true: window.localStorage.getItem("dontShowIntro") === 'true';
 
-const venue = urlParams.get("venue");
-if (venue !== null) {
+const venue = (urlParams.get("venue") ?? '').replace(/,/g, '-');
+
+if (venue !== '') {
   // get current value of venue
   const venues =  window.localStorage.getItem("venues") ?? '';
-  // if they haven't visited this venue before, ping the server
+  // if they haven't visited this venue before, ping the server & save it
   if (!venues.includes(venue)) {
-    pingServer((venues ? venues  + ','  : '') + venue.replace(/,/g, '-'));
+    pingServer(venue);
+    window.localStorage.setItem("venues", venues ? `${venues},${venue}` : venue);
   }
 }
 
