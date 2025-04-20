@@ -845,6 +845,9 @@ import { defineComponent } from "vue";
 import L, { LatLngExpression, Map } from "leaflet";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
+
+import { API_BASE_URL } from "@cosmicds/vue-toolkit";
+
 import  { cividis } from "./cividis";
 import  { svs } from "./svs_cmap";
 import { cbarNO2, cbarNO2ColorsRevised2023 } from "./revised_cmap";
@@ -924,9 +927,8 @@ const fosterTimestamps = [
 // combine the timestamps from the two sources
 
 const timestamps = fosterTimestamps;
-const STORY_VISIT_URL = "";
+const STORY_VISIT_URL = `${API_BASE_URL}/tempo-lite/visit`;
 function pingServer(venue: string) {
-  // console.log(`pinging server with venue: ${JSON.stringify(venue)}`);
 
   fetch(STORY_VISIT_URL, {
     
@@ -939,9 +941,7 @@ function pingServer(venue: string) {
     },
     
     body: JSON.stringify({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      story_name: "tempo-lite",
-      "info": {"venue": venue}
+      info: { venue }
     })
     
   })
