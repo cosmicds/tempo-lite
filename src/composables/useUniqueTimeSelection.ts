@@ -15,9 +15,6 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   const maxIndex = ref<number>(0);
   
 
-  watch(timestamps, () => {
-    singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
-  });
   
   function getOneDaysTimestamps(date: Date): number[] {
     if (isBad(date)) {
@@ -111,7 +108,6 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   }
   
   watch(singleDateSelected, (value) => {
-    console.log("singleDateSelected.value", value);
     setNearestDate(value.getTime());
   });
   

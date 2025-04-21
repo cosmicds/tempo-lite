@@ -1096,21 +1096,22 @@ const extendedRangeTimestampsSet = ref(new Set());
 const timestampsSet = ref(new Set(fosterTimestamps.value));
 
 async function updateTimestamps() {
-  getExtendedRangeTimestamps().then(ts => {
-    extendedRangeTimestamps.value = ts;
-    extendedRangeTimestampsSet.value = new Set(ts);
-  });
-  getTimestamps().then((ts) => {
-    erdTimestamps.value = ts.early_release;
-    erdTimestampsSet.value = new Set(ts.early_release);
-    newTimestamps.value = ts.released;
-    newTimestampsSet.value = new Set(ts.released);
-    timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
-    timestampsSet.value = new Set(timestamps.value);
-    cloudTimestamps.value = ts.clouds;
-    cloudTimestampsSet.value = new Set(ts.clouds);
-  });
-  return;
+  return Promise.all([
+    getExtendedRangeTimestamps().then(ts => {
+      extendedRangeTimestamps.value = ts;
+      extendedRangeTimestampsSet.value = new Set(ts);
+    }),
+    getTimestamps().then((ts) => {
+      erdTimestamps.value = ts.early_release;
+      erdTimestampsSet.value = new Set(ts.early_release);
+      newTimestamps.value = ts.released;
+      newTimestampsSet.value = new Set(ts.released);
+      timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+      timestampsSet.value = new Set(timestamps.value);
+      cloudTimestamps.value = ts.clouds;
+      cloudTimestampsSet.value = new Set(ts.clouds);
+    })
+  ]);
 }
 
 updateTimestamps().then(() => { timestampsLoaded.value = true; })
@@ -1916,6 +1917,7 @@ watch(selectedTimezone, (timezone: string) => {
 });
 
 watch(singleDateSelected, (date: Date) => {
+  if (!timestampsLoaded.value ) return;
   userSelectedCalendarDates.push(date.getTime());
 });
 </script>
