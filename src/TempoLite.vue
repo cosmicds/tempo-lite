@@ -880,6 +880,48 @@ const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("don
 const touchscreen = ref(('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled);
 
 
+
+const STORY_VISIT_URL = `${API_BASE_URL}/tempo-lite/visit`;
+function pingServer(venue: string) {
+
+  fetch(STORY_VISIT_URL, {
+    
+    method: "POST",
+    
+    headers: {
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? ''
+    },
+    
+    body: JSON.stringify({
+      info: { venue }
+    })
+    
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error("Error pinging server", response.status, response.statusText);
+      } 
+    }).
+    catch((error) => {
+      console.error("Error pinging server", error);
+    });
+}
+
+const venue = (urlParams.get("venue") ?? '').replace(/,/g, '-');
+
+if (venue !== '') {
+  // get current value of venue
+  const venues =  window.localStorage.getItem("venues") ?? '';
+  // if they haven't visited this venue before, ping the server & save it
+  if (!venues.includes(venue)) {
+    pingServer(venue);
+    window.localStorage.setItem("venues", venues ? `${venues},${venue}` : venue);
+  }
+}
+
+
 function clearUrl(hash = false) {
   const newUrl = location.origin + location.pathname + (hash ? location.hash : '');
   window.history.replaceState({}, '', newUrl);
