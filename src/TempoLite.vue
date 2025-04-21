@@ -450,12 +450,7 @@
             buttonSize="xl"
             persist-selected
             :search-provider="geocodingInfoForSearchLimited"
-            @set-location="(feature: MapBoxFeature) => {
-              if (feature !== null) {
-                map?.setView([feature.center[1], feature.center[0]], 12);
-                setMarker([feature.center[1], feature.center[0]]);
-              }
-            }"
+            @set-location="setLocationFromSearch"
             @error="(error: string) => searchErrorMessage = error"
           ></location-search>
         </div>
@@ -842,8 +837,8 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
-import { API_BASE_URL } from "@cosmicds/vue-toolkit";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, ComputedRef } from "vue";
+import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import L, { LatLngExpression, Map } from "leaflet";
@@ -917,10 +912,10 @@ let creditsOpenedCount = 0;
 let creditsTimestamp = null as number | null;
 let creditsOpenTimeMs = 0;
 let shareButtonClickedCount = 0;
-let userSelectedCalendarDates = [];
-let userSelectedTimezones = [];
-let userSelectedLocations = [];
-let userSelectedNotableEvents = [];
+let userSelectedCalendarDates: number[] = [];
+let userSelectedTimezones: string[] = [];
+let userSelectedLocations: string[] = [];
+let userSelectedNotableEvents: [string, string][] = [];
 
 const STORY_DATA_URL = `${API_BASE_URL}/tempo-lite/data`;
 const OPT_OUT_KEY = "tempo-lite-optout" as const;
@@ -1386,20 +1381,10 @@ function updateURL() {
   }
 }
 
-
 function cmapNO2(x: number): string {
   const rgb = cbarNO2(0, 1, x);
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
 }
-
-
-function blurActiveElement() {
-  const active = document.activeElement;
-  if (active instanceof HTMLElement) {
-    active.blur();
-  }
-}
-
 
 async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
   return geocodingInfoForSearch(searchText, {
@@ -1413,6 +1398,15 @@ function resetMapBounds() {
   setView([40.044, -98.789], 4);
 }
 
+function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
+  const [feature, text] = items;
+  if (feature !== null) {
+    const coordinates: [number, number] = [feature.center[1], feature.center[0]];
+    map.value?.setView(coordinates, 12);
+    setMarker(coordinates);
+    userSelectedLocations.push(text);
+  }
+}
 
 function play() {
   playInterval.value = setInterval(() => {
@@ -1862,658 +1856,550 @@ watch(userGuideOpen, (open: boolean) => {
     userGuideTimestamp = null;
   }
 });
+
+const radioSubloc: ComputedRef<[number | null, number | null]> = computed(() => [radio.value, sublocationRadio.value]); 
+watch(radioSubloc, (item: [number | null, number | null]) => {
+  const radio = item[0];
+  const subRadio = item[1];
+  if (radio === null || subRadio === null) {
+    return [];
+  }
+  const eventText = interestingEvents[radio].label ?? "";
+  const subEventText = locationsOfInterestText.value[radio][subRadio];
+  userSelectedNotableEvents.push([eventText, subEventText]);
+});
+
+watch(selectedTimezone, (timezone: string) => {
+  userSelectedTimezones.push(timezone);
+});
+
+watch(singleDateSelected, (date: Date) => {
+  userSelectedCalendarDates.push(date.getTime());
+});
 </script>
   
-  <style lang="less">
-  @font-face {
-    font-family: "Highway Gothic Narrow";
-    src: url("./assets/HighwayGothicNarrow.ttf");
+<style lang="less">
+@font-face {
+  font-family: "Highway Gothic Narrow";
+  src: url("./assets/HighwayGothicNarrow.ttf");
+}
+
+// import Lexand from google fonts
+// @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+
+:root {
+  // font-size: clamp(14px, 1.7vw, 16px);
+  // --default-font-size: 1rem; // we don't use this
+  font-size: 16px; // this is the standard browser default
+  --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem); // we don't use this
+  --smithsonian-blue: #009ade;
+  --smithsonian-yellow: #ffcc33;
+  --info-background: #092088;
+  --map-height: 500px;
+}
+
+.dp__theme_dark {
+  --dp-primary-text-color: #fff !important; // selected date text
+  --dp-primary-color: var(--accent-color) !important; // selected date background
+}
+
+.dp__month_year_select,
+.dp__calendar_item {
+  color: #97c8f1 !important; // selectable date text & Month/Year
+  font-weight: 800 !important;
+}
+
+.dp__cell_disabled {
+  color: #888 !important;
+  font-weight: 400;
+}
+
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  overflow: hidden;
+
+
+  -ms-overflow-style: none;
+  // scrollbar-width: none;
+}
+
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: var(--smithsonian-yellow);
+}
+
+ul {
+  margin-left: 1rem;
+}
+
+#intro-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+}
+
+.gradient-background {
+  // rotated translucent background gradient
+  background: linear-gradient(45deg,
+      rgb(14, 30, 40),
+      rgb(22, 50, 65),
+      rgb(30 70 90));
+}
+
+#introduction-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  height: fit-content;
+  // outline: 5px solid var(--accent-color);
+  border-radius: 1em;
+  z-index: 1000;
+
+  @media (max-width: 700px) {
+    width: 95%;
+    padding: 3em 1em 1em;
   }
 
-  // import Lexand from google fonts
-  // @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
-
-  :root {
-    // font-size: clamp(14px, 1.7vw, 16px);
-    // --default-font-size: 1rem; // we don't use this
-    font-size: 16px; // this is the standard browser default
-    --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem); // we don't use this
-    --smithsonian-blue: #009ade;
-    --smithsonian-yellow: #ffcc33;
-    --info-background: #092088;
-    --map-height: 500px;
+  @media (min-width: 701px) {
+    width: 75%;
+    padding: 3em 2em 2em;
   }
 
-  .dp__theme_dark {
-    --dp-primary-text-color: #fff !important; // selected date text
-    --dp-primary-color: var(--accent-color) !important; // selected date background
+  .span-accent {
+    color: var(--accent-color);
   }
 
-  .dp__month_year_select,
-  .dp__calendar_item {
-    color: #97c8f1 !important; // selectable date text & Month/Year
-    font-weight: 800 !important;
+
+  //font-size: calc(1.1 * var(--default-font-size));
+  // line-height: var(--default-line-height);
+
+  .v-list-item {
+    color: #eee;
   }
 
-  .dp__cell_disabled {
-    color: #888 !important;
-    font-weight: 400;
+  .intro-text {
+    color: white;
+    font-size: 1em;
+    line-height: 1.5em;
   }
 
-  html {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    background-color: #000;
-    overflow: hidden;
-
-
-    -ms-overflow-style: none;
-    // scrollbar-width: none;
+  strong {
+    color: white;
   }
 
-  body {
-    position: fixed;
+  div#intro-bottom-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 1em;
+    margin-top: 0.5em;
+
+    .v-btn.v-btn--density-default {
+      max-height: calc(1.6 * var(--default-line-height));
+    }
+
+    .v-btn--size-default {
+      font-size: calc(0.9 * var(--default-font-size));
+    }
+
+    #intro-next-button {
+      background-color: rgba(18, 18, 18, .5);
+    }
+  }
+}
+
+
+#splash-screen {
+  color: #E0E0E0;
+
+  justify-content: space-around;
+  align-content: center;
+  padding-top: 4rem;
+  padding-bottom: 1rem;
+
+  font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
+
+  div {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  // make a paragraph inside the div centered horizontally and vertically
+  p {
+    font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
+    font-weight: bold;
+    vertical-align: middle;
+  }
+
+  #first-splash-row {
     width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: auto;
-
-    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 1.25em;
   }
 
-  a {
-    text-decoration: none;
+  #splash-screen-text {
+    // in the grid, the text is in the 2nd column
+    display: flex;
+    flex-direction: column;
+    line-height: 130%;
+    font-size: 2em;
     color: var(--smithsonian-yellow);
   }
 
-  ul {
-    margin-left: 1rem;
+  .splash-get-started {
+    border: 2px solid white;
+    font-size: 1.5em;
+    margin-top: 10%;
+    margin-bottom: 2%;
+    font-weight: bold !important;
   }
 
-  #intro-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.7);
-    z-index: 100;
+  #splash-screen-acknowledgements {
+    margin-top: 3rem;
+    font-size: calc(1.7 * var(--default-font-size));
+    line-height: calc(1.5 * var(--default-line-height));
+    width: 80%;
+    color: var(--smithsonian-yellow);
   }
 
-  .gradient-background {
-    // rotated translucent background gradient
-    background: linear-gradient(45deg,
-        rgb(14, 30, 40),
-        rgb(22, 50, 65),
-        rgb(30 70 90));
-  }
+  #splash-screen-logos {
+    margin-block: 0.75em;
 
-  #introduction-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
-    height: fit-content;
-    // outline: 5px solid var(--accent-color);
-    border-radius: 1em;
-    z-index: 1000;
-
-    @media (max-width: 700px) {
-      width: 95%;
-      padding: 3em 1em 1em;
-    }
-
-    @media (min-width: 701px) {
-      width: 75%;
-      padding: 3em 2em 2em;
-    }
-
-    .span-accent {
-      color: var(--accent-color);
-    }
-
-
-    //font-size: calc(1.1 * var(--default-font-size));
-    // line-height: var(--default-line-height);
-
-    .v-list-item {
-      color: #eee;
-    }
-
-    .intro-text {
-      color: white;
-      font-size: 1em;
-      line-height: 1.5em;
-    }
-
-    strong {
-      color: white;
-    }
-
-    div#intro-bottom-controls {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-
-      gap: 1em;
-      margin-top: 0.5em;
-
-      .v-btn.v-btn--density-default {
-        max-height: calc(1.6 * var(--default-line-height));
-      }
-
-      .v-btn--size-default {
-        font-size: calc(0.9 * var(--default-font-size));
-      }
-
-      #intro-next-button {
-        background-color: rgba(18, 18, 18, .5);
-      }
-    }
-  }
-
-
-  #splash-screen {
-    color: #E0E0E0;
-
-    justify-content: space-around;
-    align-content: center;
-    padding-top: 4rem;
-    padding-bottom: 1rem;
-
-    font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
-
-    div {
-      margin-inline: auto;
-      text-align: center;
-    }
-
-    // make a paragraph inside the div centered horizontally and vertically
-    p {
-      font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
-      font-weight: bold;
-      vertical-align: middle;
-    }
-
-    #first-splash-row {
-      width: 100%;
-      font-size: 1.25em;
-    }
-
-    #splash-screen-text {
-      // in the grid, the text is in the 2nd column
-      display: flex;
-      flex-direction: column;
-      line-height: 130%;
-      font-size: 2em;
-      color: var(--smithsonian-yellow);
-    }
-
-    .splash-get-started {
-      border: 2px solid white;
-      font-size: 1.5em;
-      margin-top: 10%;
-      margin-bottom: 2%;
-      font-weight: bold !important;
-    }
-
-    #splash-screen-acknowledgements {
-      margin-top: 3rem;
-      font-size: calc(1.7 * var(--default-font-size));
-      line-height: calc(1.5 * var(--default-line-height));
-      width: 80%;
-      color: var(--smithsonian-yellow);
-    }
-
-    #splash-screen-logos {
-      margin-block: 0.75em;
-
-      /* format for including more inline logos */
-      display: flex; // place on same line
-      justify-content: center; // align center
-
-      >* {
-        margin-inline: 0; // counteract margin-inline: auto from #splash-screen div
-      }
-
-      /* ************ */
-
-      img {
-        height: 5vmin;
-        vertical-align: middle;
-        margin: 2px;
-      }
-
-      @media only screen and (max-width: 600px) {
-        img {
-          height: 24px;
-        }
-      }
-
-      svg {
-        vertical-align: middle;
-        height: 24px;
-      }
-    }
-  }
-
-  #intro-window-close-button {
-    position: absolute;
-    top: 0.25em;
-    right: 0.25em;
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
-
-  #main-content {
-    position: fixed;
-    width: 100%;
-    height: var(--app-content-height);
-    overflow: auto;
-    transition: height 0.1s ease-in-out;
-  }
-
-  #app {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-  }
-
-  #map {
-    width: 100%;
-    height: var(--map-height)
-  }
-
-  // define the layout
-  .content-with-sidebars {
-    position: relative;
-    padding: 0;
-
-    display: grid;
-    grid-template-columns: 0 .8fr .3fr;
-    grid-template-rows: 70px var(--map-height) 78px .5fr .5fr;
-    gap: 20px 10px;
+    /* format for including more inline logos */
+    display: flex; // place on same line
+    justify-content: center; // align center
 
     >* {
-      background-color: transparent;
+      margin-inline: 0; // counteract margin-inline: auto from #splash-screen div
     }
 
-    >div {
-      outline: 1px solid transparent;
-    }
-
-    #user-options {
-      min-width: 200px;
-      margin-left: 1.5rem;
-      grid-column: 3 / 4;
-      grid-row: 2 / 3;
-    }
-
-    #logo-title {
-      display: flex;
-      align-items: center;
-      grid-column: 2 / 4;
-      grid-row: 1 / 2;
-      gap: 10px;
-    }
-
-    #menu-area {
-      // grid-column: 3 / 4;
-      // grid-row: 1 / 2;
-      // // border: 1px solid red;
-      display: flex;
-      justify-self: end;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    #where {
-      display: none;
-      grid-column: 1 / 2;
-      grid-row: 2 / 3;
-    }
-
-    #map-container {
-      grid-column: 2 / 3;
-      grid-row: 2 / 3;
-    }
-
-    #when {
-      display: none;
-      grid-column: 1 / 2;
-      grid-row: 3 / 4;
-    }
-
-    #slider-row {
-      grid-column: 2 / 3;
-      grid-row: 3 / 4;
-    }
-
-    #information {
-      padding: 1rem;
-      grid-column: 2 / 3;
-      grid-row: 4 / 6;
-    }
-
-  }
-
-  // style the content 
-  #main-content {
-    padding: 2rem;
-  }
-
-  .content-with-sidebars {
-    font-family: "Lexend", sans-serif;
-    font-optical-sizing: auto;
-    font-weight: normal;
-    font-style: normal;
-    background-color: transparent;
-  }
-
-  #title {
-    color: var(--smithsonian-yellow);
-    font-weight: 600;
-    font-size: 2.5rem;
-    text-align: left;
-    text-wrap: nowrap;
-    flex-grow: 1;
-  }
-
-  a[href="https://tempo.si.edu"]>img {
-    // display: inline;
-    height: 70px !important;
-    width: auto !important;
-  }
-
-  #information {
-    background-color: var(--info-background);
-    border-radius: 10px;
-    padding-inline: 1rem;
-    // margin-right: 200px;
-  }
-
-  a {
-    text-decoration: underline;
-    font-weight: bold;
-    color: var(--accent-color-2);
-  }
-
-
-  // prevent overflows of the content
-  #user-options {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 5px;
-  }
-
-  #date-radio {
-    padding-block: 0.5rem;
-  }
-
-  #date-radio div.highlighted label {
-    font-size: 1.2em;
-    font-weight: bold;
-    border-radius: 5px;
-    color: var(--smithsonian-yellow);
-    opacity: 1;
-  }
-
-  #all-dates {
-    padding-bottom: 0.5rem;
-  }
-
-  #locations-of-interest {
-    border: 1px solid black;
-    padding-block: 0.5rem;
-    padding-inline: 1rem;
-    height: fit-content;
-
-    h3 {
-      font-weight: 500;
-    }
-  }
-
-  .big-label {
-    font-size: 2rem;
-    text-align: right;
-    margin-right: 0.5rem;
-    align-self: end;
-    color: var(--smithsonian-blue);
-  }
-
-  #when {
-    align-self: start;
-  }
-
-  #slider-row,
-  #when {
-    margin-top: 1.5rem;
-  }
-
-  #slider-row {
-    margin-left: 3rem;
-  }
-
-  #map-container {
-    position: relative;
-    display: flex;
-    flex-direction: row;
-    padding-right: 10px;
-
-    #map {
-      flex-basis: 80%;
-      flex-grow: 1;
-      flex-shrink: 1;
-    }
-
-    #location-and-sharing {
-      position: absolute;
-      bottom: 0;
-      z-index: 1000;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 0.5rem;
-      width: fit-content;
-    }
-
-    .forward-geocoding-container {
-      width: 250px;
-      border: 2px solid black;
-    }
-
-    #map-show-hide-controls {
-      z-index: 1000;
-      position: absolute;
-      top: 1rem;
-      right: 80px;
-    }
-
-    #map-legend {
-      position: absolute;
-      top: 0;
-      right: 80px;
-      width: fit-content;
-      z-index: 1000;
-
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      color: black;
-      background-color: #fff5;
-      padding-left: 0.5rem;
-      padding-right: 0.25rem;
-
-      backdrop-filter: blur(5px);
-
-      hr.line-legend {
-        display: inline-block;
-        border: 0.5px solid #c10124;
-        width: 3rem;
-      }
-    }
-
-    .colorbar-container {
-      flex-grow: 0;
-      flex-shrink: 1;
-
-      .unit-label {
-        font-size: .95em;
-      }
-    }
-
-    #la-fires {
-      z-index: 1000;
-      position: absolute;
-      right: 80px;
-      bottom: 1rem;
-
-    }
-  }
-
-  #slider-row {
-    display: flex;
-    flex-direction: row;
-    padding-left: 0;
-
-    >#play-pause-button {
-      height: fit-content;
-      align-self: center;
-      padding-inline: 0.5rem;
-      margin-left: 0.75rem;
-      width: 2.5rem;
-      color: var(--accent-color);
-      border: 2px solid var(--accent-color);
-    }
-
-    #play-pause-button[disabled] {
-      filter: grayscale(100%);
-      cursor: progress;
-      cursor: not-allowed;
-    }
-
-    .icon-wrapper {
-      padding-inline: 0.5rem !important;
-    }
-  }
-
-  .time-slider {
-
-    .v-slider-thumb {
-
-      .v-slider-thumb__surface::after {
-        background-image: url("./assets/smithsonian.png");
-        background-size: 30px 30px;
-        height: 30px;
-        width: 30px;
-      }
-
-      .v-slider-thumb__label {
-        background-color: var(--accent-color-2);
-        border: 0.25rem solid var(--accent-color);
-        width: max-content;
-        height: 2.5rem;
-        font-size: 1rem;
-
-        &::before {
-          color: var(--accent-color);
-        }
-      }
-    }
-
-    .v-slider-track__tick {
-      background-color: var(--accent-color);
-      /* Change color */
-      height: 15px;
-      /* Change size */
-      width: 4px;
-      margin-top: 0 !important;
-      // top: -10%;
-    }
-
-    .v-slider {
-
-      .v-slider.v-input--horizontal {
-        grid-template-rows: auto 0px;
-      }
-
-      .v-slider.v-input--horizontal .v-slider-thumb__label {
-        // top: calc(var(--v-slider-thumb-size) * 1.5);
-        z-index: 2000;
-      }
-
-      .v-slider.v-input--horizontal .v-slider-thumb__label::before {
-        border-left: 6px solid transparent;
-        border-right: 6px solid transparent;
-        border-bottom: 6px solid transparent;
-        border-top: 6px solid currentColor;
-        bottom: -15px;
-      }
-    }
-  }
-
-  #opacity-slider-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    padding-left: 7%;
-    padding-right: 7%;
-    gap: 2px;
-
-    .v-slider {
-      margin-right: 0;
-      width: 100%;
-    }
-
-    #opacity-slider-label {
-      opacity: 0.7;
-      width: fit-content;
-    }
-  }
-
-  #body-logos {
-    margin-bottom: -1rem;
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
+    /* ************ */
 
     img {
-      height: 35px !important;
+      height: 5vmin;
       vertical-align: middle;
       margin: 2px;
     }
+
+    @media only screen and (max-width: 600px) {
+      img {
+        height: 24px;
+      }
+    }
+
+    svg {
+      vertical-align: middle;
+      height: 24px;
+    }
+  }
+}
+
+#intro-window-close-button {
+  position: absolute;
+  top: 0.25em;
+  right: 0.25em;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+#main-content {
+  position: fixed;
+  width: 100%;
+  height: var(--app-content-height);
+  overflow: auto;
+  transition: height 0.1s ease-in-out;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: var(--map-height)
+}
+
+// define the layout
+.content-with-sidebars {
+  position: relative;
+  padding: 0;
+
+  display: grid;
+  grid-template-columns: 0 .8fr .3fr;
+  grid-template-rows: 70px var(--map-height) 78px .5fr .5fr;
+  gap: 20px 10px;
+
+  >* {
+    background-color: transparent;
   }
 
-  #icons-container>a[href="https://worldwidetelescope.org/home/"] {
+  >div {
+    outline: 1px solid transparent;
+  }
+
+  #user-options {
+    min-width: 200px;
+    margin-left: 1.5rem;
+    grid-column: 3 / 4;
+    grid-row: 2 / 3;
+  }
+
+  #logo-title {
+    display: flex;
+    align-items: center;
+    grid-column: 2 / 4;
+    grid-row: 1 / 2;
+    gap: 10px;
+  }
+
+  #menu-area {
+    // grid-column: 3 / 4;
+    // grid-row: 1 / 2;
+    // // border: 1px solid red;
+    display: flex;
+    justify-self: end;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  #where {
     display: none;
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
   }
 
-  .v-selection-control {
-    z-index: auto;
-
+  #map-container {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
   }
 
-  .v-radio-group .v-input__details {
+  #when {
     display: none;
+    grid-column: 1 / 2;
+    grid-row: 3 / 4;
   }
 
-  .v-radio-group .v-selection-control {
-    label {
-      width: 100%;
+  #slider-row {
+    grid-column: 2 / 3;
+    grid-row: 3 / 4;
+  }
+
+  #information {
+    padding: 1rem;
+    grid-column: 2 / 3;
+    grid-row: 4 / 6;
+  }
+
+}
+
+// style the content 
+#main-content {
+  padding: 2rem;
+}
+
+.content-with-sidebars {
+  font-family: "Lexend", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: normal;
+  font-style: normal;
+  background-color: transparent;
+}
+
+#title {
+  color: var(--smithsonian-yellow);
+  font-weight: 600;
+  font-size: 2.5rem;
+  text-align: left;
+  text-wrap: nowrap;
+  flex-grow: 1;
+}
+
+a[href="https://tempo.si.edu"]>img {
+  // display: inline;
+  height: 70px !important;
+  width: auto !important;
+}
+
+#information {
+  background-color: var(--info-background);
+  border-radius: 10px;
+  padding-inline: 1rem;
+  // margin-right: 200px;
+}
+
+a {
+  text-decoration: underline;
+  font-weight: bold;
+  color: var(--accent-color-2);
+}
+
+
+// prevent overflows of the content
+#user-options {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+#date-radio {
+  padding-block: 0.5rem;
+}
+
+#date-radio div.highlighted label {
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 5px;
+  color: var(--smithsonian-yellow);
+  opacity: 1;
+}
+
+#all-dates {
+  padding-bottom: 0.5rem;
+}
+
+#locations-of-interest {
+  border: 1px solid black;
+  padding-block: 0.5rem;
+  padding-inline: 1rem;
+  height: fit-content;
+
+  h3 {
+    font-weight: 500;
+  }
+}
+
+.big-label {
+  font-size: 2rem;
+  text-align: right;
+  margin-right: 0.5rem;
+  align-self: end;
+  color: var(--smithsonian-blue);
+}
+
+#when {
+  align-self: start;
+}
+
+#slider-row,
+#when {
+  margin-top: 1.5rem;
+}
+
+#slider-row {
+  margin-left: 3rem;
+}
+
+#map-container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  padding-right: 10px;
+
+  #map {
+    flex-basis: 80%;
+    flex-grow: 1;
+    flex-shrink: 1;
+  }
+
+  #location-and-sharing {
+    position: absolute;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+  }
+
+  .forward-geocoding-container {
+    width: 250px;
+    border: 2px solid black;
+  }
+
+  #map-show-hide-controls {
+    z-index: 1000;
+    position: absolute;
+    top: 1rem;
+    right: 80px;
+  }
+
+  #map-legend {
+    position: absolute;
+    top: 0;
+    right: 80px;
+    width: fit-content;
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    color: black;
+    background-color: #fff5;
+    padding-left: 0.5rem;
+    padding-right: 0.25rem;
+
+    backdrop-filter: blur(5px);
+
+    hr.line-legend {
+      display: inline-block;
+      border: 0.5px solid #c10124;
+      width: 3rem;
     }
   }
 
-  .rounded-icon-wrapper {
+  .colorbar-container {
+    flex-grow: 0;
+    flex-shrink: 1;
+
+    .unit-label {
+      font-size: .95em;
+    }
+  }
+
+  #la-fires {
+    z-index: 1000;
+    position: absolute;
+    right: 80px;
+    bottom: 1rem;
+
+  }
+}
+
+#slider-row {
+  display: flex;
+  flex-direction: row;
+  padding-left: 0;
+
+  >#play-pause-button {
     height: fit-content;
     align-self: center;
     padding-inline: 0.5rem;
@@ -2521,334 +2407,462 @@ watch(userGuideOpen, (open: boolean) => {
     width: 2.5rem;
     color: var(--accent-color);
     border: 2px solid var(--accent-color);
-    border-radius: 20px;
   }
 
-  i.mdi-menu-down {
-    color: var(--smithsonian-blue);
+  #play-pause-button[disabled] {
+    filter: grayscale(100%);
+    cursor: progress;
+    cursor: not-allowed;
   }
 
-  // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
-  :focus-visible:not(.v-field__input input, .v-overlay__content),
-  button:focus-visible,
-  .focus-visible,
-  .v-selection-control--focus-visible .v-selection-control__input {
-    outline: 9px double white !important;
-    box-shadow: 0 0 0 6px black !important;
-    border-radius: .125rem;
+  .icon-wrapper {
+    padding-inline: 0.5rem !important;
+  }
+}
+
+.time-slider {
+
+  .v-slider-thumb {
+
+    .v-slider-thumb__surface::after {
+      background-image: url("./assets/smithsonian.png");
+      background-size: 30px 30px;
+      height: 30px;
+      width: 30px;
+    }
+
+    .v-slider-thumb__label {
+      background-color: var(--accent-color-2);
+      border: 0.25rem solid var(--accent-color);
+      width: max-content;
+      height: 2.5rem;
+      font-size: 1rem;
+
+      &::before {
+        color: var(--accent-color);
+      }
+    }
   }
 
-  .controls-card {
+  .v-slider-track__tick {
+    background-color: var(--accent-color);
+    /* Change color */
+    height: 15px;
+    /* Change size */
+    width: 4px;
+    margin-top: 0 !important;
+    // top: -10%;
+  }
+
+  .v-slider {
+
+    .v-slider.v-input--horizontal {
+      grid-template-rows: auto 0px;
+    }
+
+    .v-slider.v-input--horizontal .v-slider-thumb__label {
+      // top: calc(var(--v-slider-thumb-size) * 1.5);
+      z-index: 2000;
+    }
+
+    .v-slider.v-input--horizontal .v-slider-thumb__label::before {
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-top: 6px solid currentColor;
+      bottom: -15px;
+    }
+  }
+}
+
+#opacity-slider-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-left: 7%;
+  padding-right: 7%;
+  gap: 2px;
+
+  .v-slider {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  #opacity-slider-label {
+    opacity: 0.7;
+    width: fit-content;
+  }
+}
+
+#body-logos {
+  margin-bottom: -1rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+
+  img {
+    height: 35px !important;
+    vertical-align: middle;
+    margin: 2px;
+  }
+}
+
+#icons-container>a[href="https://worldwidetelescope.org/home/"] {
+  display: none;
+}
+
+.v-selection-control {
+  z-index: auto;
+
+}
+
+.v-radio-group .v-input__details {
+  display: none;
+}
+
+.v-radio-group .v-selection-control {
+  label {
+    width: 100%;
+  }
+}
+
+.rounded-icon-wrapper {
+  height: fit-content;
+  align-self: center;
+  padding-inline: 0.5rem;
+  margin-left: 0.75rem;
+  width: 2.5rem;
+  color: var(--accent-color);
+  border: 2px solid var(--accent-color);
+  border-radius: 20px;
+}
+
+i.mdi-menu-down {
+  color: var(--smithsonian-blue);
+}
+
+// From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
+:focus-visible:not(.v-field__input input, .v-overlay__content),
+button:focus-visible,
+.focus-visible,
+.v-selection-control--focus-visible .v-selection-control__input {
+  outline: 9px double white !important;
+  box-shadow: 0 0 0 6px black !important;
+  border-radius: .125rem;
+}
+
+.controls-card {
+  padding: 1rem;
+  border: 1px solid #068ede;
+}
+
+//  mobile styles
+
+// ========= DEFINE MOBILE STYLES =========
+// KEEP THEM ALL HERE
+@media (max-width: 1180px) {
+
+  .content-with-sidebars {
+    grid-template-columns: 0px auto auto;
+    grid-template-rows: 3.5rem var(--map-height) 78px .5fr .5fr;
+
+    #when {
+      display: none;
+    }
+
+    #where {
+      display: none;
+    }
+
+    #title {
+      text-wrap: wrap;
+      font-size: 2rem;
+      line-height: 1.25;
+      margin-left: 10px;
+    }
+
+    #slider-row {
+      margin-left: 3rem;
+    }
+
+    a[href="https://tempo.si.edu"]>img {
+      height: 70px !important;
+      width: auto !important;
+    }
+
+    #user-options {
+      width: 250px;
+    }
+
+
+  }
+}
+
+@media (max-width: 750px) {
+  :root {
+    --map-height: 60vh;
+    --map-height: 60dvh;
+    --map-height: 60svh;
+    font-size: 14px;
+  }
+
+  #main-content {
     padding: 1rem;
-    border: 1px solid #068ede;
   }
 
-  //  mobile styles
-
-  // ========= DEFINE MOBILE STYLES =========
-  // KEEP THEM ALL HERE
-  @media (max-width: 1180px) {
-
-    .content-with-sidebars {
-      grid-template-columns: 0px auto auto;
-      grid-template-rows: 3.5rem var(--map-height) 78px .5fr .5fr;
-
-      #when {
-        display: none;
-      }
-
-      #where {
-        display: none;
-      }
-
-      #title {
-        text-wrap: wrap;
-        font-size: 2rem;
-        line-height: 1.25;
-        margin-left: 10px;
-      }
-
-      #slider-row {
-        margin-left: 3rem;
-      }
-
-      a[href="https://tempo.si.edu"]>img {
-        height: 70px !important;
-        width: auto !important;
-      }
-
-      #user-options {
-        width: 250px;
-      }
-
-
-    }
+  #introduction-overlay .v-window {
+    max-height: 75vh;
+    max-height: 75dvh;
+    max-height: 75sdvh;
+    overflow-y: scroll;
   }
 
-  @media (max-width: 750px) {
-    :root {
-      --map-height: 60vh;
-      --map-height: 60dvh;
-      --map-height: 60svh;
-      font-size: 14px;
+  #introduction-overlay .intro-text {
+    font-size: min(1.15em, 2vw);
+  }
+
+  #introduction-overlay ul li {
+    margin-block-start: 1.15em;
+  }
+
+  .content-with-sidebars {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 78px repeat(5, auto);
+    gap: 10px;
+    // padding-inline: 1rem;
+
+
+    #logo-title {
+      min-width: 0;
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
     }
 
-    #main-content {
-      padding: 1rem;
+    a[href="https://tempo.si.edu"]:has(img) {
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
     }
 
-    #introduction-overlay .v-window {
-      max-height: 75vh;
-      max-height: 75dvh;
-      max-height: 75sdvh;
-      overflow-y: scroll;
+    #menu-area {
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 1rem;
+      align-items: flex-end;
     }
-
-    #introduction-overlay .intro-text {
-      font-size: min(1.15em, 2vw);
-    }
-
-    #introduction-overlay ul li {
-      margin-block-start: 1.15em;
-    }
-
-    .content-with-sidebars {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto 78px repeat(5, auto);
-      gap: 10px;
-      // padding-inline: 1rem;
-
-
-      #logo-title {
-        min-width: 0;
-        grid-column: 1 / 2;
-        grid-row: 1 / 2;
-      }
-
-      a[href="https://tempo.si.edu"]:has(img) {
-        grid-column: 1 / 2;
-        grid-row: 1 / 2;
-      }
-
-      #menu-area {
-        grid-column: 1 / 2;
-        grid-row: 1 / 2;
-        display: flex;
-        flex-direction: column-reverse;
-        gap: 1rem;
-        align-items: flex-end;
-      }
-
-      #map-container {
-        grid-column: 1 / 2;
-        grid-row: 2 / 3;
-      }
-
-      #map-container #map-show-hide-controls {
-        right: 5px
-      }
-
-      #slider-row {
-        grid-column: 1 / 2;
-        grid-row: 3 / 4;
-      }
-
-      #user-options {
-        grid-column: 1 / 2;
-        grid-row: 4 / 5;
-      }
-
-
-      #where {
-        display: none;
-      }
-
-
-      #when {
-        display: none;
-      }
-
-
-      #bottom-options {
-        grid-column: 1 / 2;
-        grid-row: 5 / 6;
-      }
-
-      #information {
-        grid-column: 1 / 2;
-        grid-row: 6 / 7;
-      }
-
-      // #body-logos {
-      //   grid-column: 1 / 2;
-      //   grid-row: 7 / 8;
-      // }
-    }
-
-    .content-with-sidebars {
-
-      #slider-row {
-        margin-left: 4rem;
-        margin-right: 1rem;
-        padding-top: 10px;
-        align-items: center;
-      }
-
-      #user-options {
-        margin: 0;
-        width: auto;
-      }
-
-      #bottom-options {
-        margin: 0;
-      }
-
-      #information {
-        font-size: 1em;
-      }
-
-
-      #title {
-        font-size: 2rem;
-        margin-left: 15px;
-        text-wrap: wrap;
-
-      }
-
-    }
-
 
     #map-container {
-      display: flex;
-      flex-direction: column;
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+    }
 
+    #map-container #map-show-hide-controls {
+      right: 5px
+    }
 
-      #map-contents {
-        position: relative;
-      }
+    #slider-row {
+      grid-column: 1 / 2;
+      grid-row: 3 / 4;
+    }
 
-      #map-legend {
-        right: 0;
-      }
-
-      .colorbar-container-horizontal {
-        margin-top: 1rem;
-        margin-bottom: 0.5rem;
-        z-index: 5000;
-        --height: 0.75rem;
-      }
-
+    #user-options {
+      grid-column: 1 / 2;
+      grid-row: 4 / 5;
     }
 
 
+    #where {
+      display: none;
+    }
+
+
+    #when {
+      display: none;
+    }
+
+
+    #bottom-options {
+      grid-column: 1 / 2;
+      grid-row: 5 / 6;
+    }
+
+    #information {
+      grid-column: 1 / 2;
+      grid-row: 6 / 7;
+    }
+
+    // #body-logos {
+    //   grid-column: 1 / 2;
+    //   grid-row: 7 / 8;
+    // }
   }
 
-  /* Leaflet crispness override */
-  // @JobLeonard - https://github.com/Leaflet/Leaflet/issues/5883#issue-269071844
-  // .leaflet-container .leaflet-overlay-pane svg,
-  // .leaflet-container .leaflet-marker-pane img,
-  // .leaflet-container .leaflet-shadow-pane img,
-  // .leaflet-container .leaflet-tile-pane img,
-  .leaflet-container img.leaflet-image-layer {
-    max-width: none !important;
-    /* Preserve crisp pixels with scaled up images */
-    image-rendering: optimizeSpeed;
-    /* Legal fallback */
-    image-rendering: -moz-crisp-edges;
-    /* Firefox        */
-    image-rendering: -o-crisp-edges;
-    /* Opera          */
-    image-rendering: -webkit-optimize-contrast;
-    /* Safari         */
-    image-rendering: optimize-contrast;
-    /* CSS3 Proposed  */
-    image-rendering: crisp-edges;
-    /* CSS4 Proposed  */
-    image-rendering: pixelated;
-    /* CSS4 Proposed  */
-    -ms-interpolation-mode: nearest-neighbor;
-    /* IE8+           */
+  .content-with-sidebars {
+
+    #slider-row {
+      margin-left: 4rem;
+      margin-right: 1rem;
+      padding-top: 10px;
+      align-items: center;
+    }
+
+    #user-options {
+      margin: 0;
+      width: auto;
+    }
+
+    #bottom-options {
+      margin: 0;
+    }
+
+    #information {
+      font-size: 1em;
+    }
+
+
+    #title {
+      font-size: 2rem;
+      margin-left: 15px;
+      text-wrap: wrap;
+
+    }
+
   }
 
+
+  #map-container {
+    display: flex;
+    flex-direction: column;
+
+
+    #map-contents {
+      position: relative;
+    }
+
+    #map-legend {
+      right: 0;
+    }
+
+    .colorbar-container-horizontal {
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      z-index: 5000;
+      --height: 0.75rem;
+    }
+
+  }
+
+
+}
+
+/* Leaflet crispness override */
+// @JobLeonard - https://github.com/Leaflet/Leaflet/issues/5883#issue-269071844
+// .leaflet-container .leaflet-overlay-pane svg,
+// .leaflet-container .leaflet-marker-pane img,
+// .leaflet-container .leaflet-shadow-pane img,
+// .leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer {
+  max-width: none !important;
+  /* Preserve crisp pixels with scaled up images */
+  image-rendering: optimizeSpeed;
+  /* Legal fallback */
+  image-rendering: -moz-crisp-edges;
+  /* Firefox        */
+  image-rendering: -o-crisp-edges;
+  /* Opera          */
+  image-rendering: -webkit-optimize-contrast;
+  /* Safari         */
+  image-rendering: optimize-contrast;
+  /* CSS3 Proposed  */
+  image-rendering: crisp-edges;
+  /* CSS4 Proposed  */
+  image-rendering: pixelated;
+  /* CSS4 Proposed  */
+  -ms-interpolation-mode: nearest-neighbor;
+  /* IE8+           */
+}
+
+.cds-snackbar-alert {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  pointer-events: auto;
+  z-index: 999;
+}
+
+.snackbar-alert-ul {
+  margin-left: 1em;
+}
+
+@media (max-width: 750px) {
   .cds-snackbar-alert {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    pointer-events: auto;
-    z-index: 999;
+    top: -1rem;
+  }
+}
+
+.menu-button,
+.share-button,
+.whats-new-button {
+  outline: 2px solid var(--smithsonian-yellow) !important;
+  height: 2rem !important;
+}
+
+.whats-new-button {
+  padding-inline: 10px;
+}
+
+div.callout-wrapper {
+  display: content;
+  // overflow-x: hidden;  
+}
+
+.menu-link {
+  text-decoration: none;
+}
+
+#loading-circle-progress-container {
+  font-size: large;
+}
+
+#la-fires {
+  max-width: 20ch;
+
+  .v-btn {
+    height: fit-content; // calc(var(--v-btn-height) + 18px);
+    padding-block: 5px;
   }
 
-  .snackbar-alert-ul {
-    margin-left: 1em;
+  .v-btn__content {
+    white-space: normal;
+
+  }
+}
+
+.la-fires-cds-dialog .cds-dialog-card .v-card-text {
+  height: unset;
+}
+
+.pulse {
+  animation-name: pulse;
+  animation-duration: 1.5s;
+  animation-iteration-count: 3;
+}
+
+/* Generated by Copilot */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
   }
 
-  @media (max-width: 750px) {
-    .cds-snackbar-alert {
-      top: -1rem;
-    }
+  50% {
+    transform: scale(1.2);
   }
 
-  .menu-button,
-  .share-button,
-  .whats-new-button {
-    outline: 2px solid var(--smithsonian-yellow) !important;
-    height: 2rem !important;
+  100% {
+    transform: scale(1);
   }
-
-  .whats-new-button {
-    padding-inline: 10px;
-  }
-
-  div.callout-wrapper {
-    display: content;
-    // overflow-x: hidden;  
-  }
-
-  .menu-link {
-    text-decoration: none;
-  }
-
-  #loading-circle-progress-container {
-    font-size: large;
-  }
-
-  #la-fires {
-    max-width: 20ch;
-
-    .v-btn {
-      height: fit-content; // calc(var(--v-btn-height) + 18px);
-      padding-block: 5px;
-    }
-
-    .v-btn__content {
-      white-space: normal;
-
-    }
-  }
-
-  .la-fires-cds-dialog .cds-dialog-card .v-card-text {
-    height: unset;
-  }
-
-  .pulse {
-    animation-name: pulse;
-    animation-duration: 1.5s;
-    animation-iteration-count: 3;
-  }
-
-  /* Generated by Copilot */
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-
-    50% {
-      transform: scale(1.2);
-    }
-
-    100% {
-      transform: scale(1);
-    }
-  }
+}
 </style>
   

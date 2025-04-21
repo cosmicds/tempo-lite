@@ -191,7 +191,7 @@ export default defineComponent({
       console.log('setting location');
       if (feature === null) { return; }
       const name = this.textForMapboxFeature(feature);
-      if ( name !== undefined) {
+      if (name !== undefined) {
         this.locationUpdatedText = name;
       } else {
         this.locationUpdatedText = feature.place_name.split(',').slice(0, 2).join(', ');
@@ -201,7 +201,7 @@ export default defineComponent({
       this.blurCombobox();
       this.timedJustUpdatedLocation();
       this.clearSearchData();
-      this.$emit('set-location', feature);
+      this.$emit('set-location', [feature, this.locationUpdatedText]);
     },
 
     toggleSearch() {
