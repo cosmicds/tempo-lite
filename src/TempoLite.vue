@@ -1655,7 +1655,7 @@ async function updateUserData() {
   const aboutDataTime = (showAboutData.value && aboutDataTimestamp !== null) ? now - aboutDataTimestamp: aboutDataOpenTimeMs;
   const whatsNewTime = (showChanges.value && whatsNewTimestamp !== null) ? now  - whatsNewTimestamp : whatsNewOpenTimeMs;
   const introductionTime = (introductionOpen.value && introductionTimestamp !== null) ? now - introductionTimestamp : introductionOpenTimeMs;
-  const userGuideTime = (userGuideOpen.value && userGuideOpenTimestamp !== null) ? now - userGuideTimestamp : userGuideOpenTimeMs;
+  const userGuideTime = (userGuideOpen.value && userGuideTimestamp !== null) ? now - userGuideTimestamp : userGuideOpenTimeMs;
 
   fetch(`${STORY_DATA_URL}/${uuid}`, {
     method: "PATCH",
