@@ -1803,10 +1803,10 @@ watch(() => showExtendedRange.value, (_value: boolean) => {
 });
 
 watch(showChanges, (show: boolean) => {
-  whatsNewOpenedCount += 1;
   const now = Date.now();
   if (show) {
     whatsNewTimestamp = now;
+    whatsNewOpenedCount += 1;
   } else if (whatsNewTimestamp !== null) {
     whatsNewOpenTimeMs += (now - whatsNewTimestamp);
     whatsNewTimestamp = null;
@@ -1814,10 +1814,10 @@ watch(showChanges, (show: boolean) => {
 });
 
 watch(showAboutData, (show: boolean) => {
-  aboutDataOpenedCount += 1;
   const now = Date.now();
   if (show) {
     aboutDataTimestamp = now;
+    aboutDataOpenedCount += 1;
   } else if (aboutDataTimestamp !== null) {
     aboutDataOpenTimeMs += (now - aboutDataTimestamp);
     aboutDataTimestamp = null;
@@ -1825,10 +1825,10 @@ watch(showAboutData, (show: boolean) => {
 });
 
 watch(showCredits, (show: boolean) => {
-  creditsOpenedCount += 1;
   const now = Date.now();
   if (show) {
     creditsTimestamp = now;
+    creditsOpenedCount += 1;
   } else if (creditsTimestamp !== null) {
     creditsOpenTimeMs += (now - creditsTimestamp);
     creditsTimestamp = null;
@@ -1836,10 +1836,10 @@ watch(showCredits, (show: boolean) => {
 });
 
 watch(introductionOpen, (open: boolean) => {
-  introductionOpenedCount += 1;
   const now = Date.now();
   if (open) {
     introductionTimestamp = now;
+    introductionOpenedCount += 1;
   } else if (introductionTimestamp !== null) {
     introductionOpenTimeMs += (now - introductionTimestamp);
     introductionTimestamp = null;
@@ -1847,10 +1847,10 @@ watch(introductionOpen, (open: boolean) => {
 });
 
 watch(userGuideOpen, (open: boolean) => {
-  userGuideOpenedCount += 1;
   const now = Date.now();
   if (open) {
     userGuideTimestamp = now;
+    userGuideOpenedCount += 1;
   } else if (userGuideTimestamp !== null) {
     userGuideOpenTimeMs += (now - userGuideTimestamp);
     userGuideTimestamp = null;
@@ -1865,7 +1865,7 @@ watch(radioSubloc, (item: [number | null, number | null]) => {
     return [];
   }
   const eventText = interestingEvents[radio].label ?? "";
-  const subEventText = locationsOfInterestText.value[radio][subRadio];
+  const subEventText = locationsOfInterest.value[radio][subRadio].text;
   userSelectedNotableEvents.push([eventText, subEventText]);
 });
 
