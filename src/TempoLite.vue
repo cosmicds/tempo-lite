@@ -846,7 +846,6 @@ import { v4 } from "uuid";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
 import { cbarNO2 } from "./revised_cmap";
-import { API_BASE_URL } from "@cosmicds/vue-toolkit";
 import fieldOfRegard from "./assets/TEMPO_FOR.json";
 import augustFieldOfRegard from "./assets/august_for.json";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
