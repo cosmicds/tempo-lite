@@ -219,6 +219,7 @@
             size="small"
             rounded="1"
             :tooltip-disabled="mobile"
+            @click="shareButtonClickedCount += 1"
             alert
           />
         <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
@@ -842,9 +843,11 @@
   
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { API_BASE_URL } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import L, { LatLngExpression, Map } from "leaflet";
+import { v4 } from "uuid";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
 import { cbarNO2 } from "./revised_cmap";
@@ -894,6 +897,43 @@ const showNotice = ref(true);
 const sheet = ref<SheetType>(null);
 const accentColor = ref("#068ede");
 const accentColor2 = ref("#ffcc33");
+
+const introductionOpen = computed(() => inIntro.value && (introSlide.value === 1));
+const userGuideOpen = computed(() => inIntro.value && (introSlide.value === 4));
+
+let whatsNewOpenedCount = 0;
+let whatsNewTimestamp = null as number | null;
+let whatsNewOpenTimeMs = 0;
+let introductionOpenedCount = 0;
+let introductionTimestamp = null as number | null;
+let introductionOpenTimeMs = 0;
+let userGuideOpenedCount = 0;
+let userGuideTimestamp = null as number | null;
+let userGuideOpenTimeMs = 0;
+let aboutDataOpenedCount = 0;
+let aboutDataTimestamp = null as number | null;
+let aboutDataOpenTimeMs = 0;
+let creditsOpenedCount = 0;
+let creditsTimestamp = null as number | null;
+let creditsOpenTimeMs = 0;
+let shareButtonClickedCount = 0;
+let userSelectedCalendarDates = [];
+let userSelectedTimezones = [];
+let userSelectedLocations = [];
+let userSelectedNotableEvents = [];
+
+const STORY_DATA_URL = `${API_BASE_URL}/tempo-lite/data`;
+const OPT_OUT_KEY = "tempo-lite-optout" as const;
+const UUID_KEY = "tempo-lite-uuid" as const;
+const storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
+const maybeUUID = window.localStorage.getItem(UUID_KEY);
+const optOut = typeof storedOptOut === "string" ? storedOptOut === "true" : null;
+const responseOptOut = ref(optOut);
+const existingUser = maybeUUID !== null;
+const uuid = maybeUUID ?? v4();
+if (!existingUser) {
+  window.localStorage.setItem(UUID_KEY, uuid);
+}
 
 function selectSheet(name: SheetType) {
   if (sheet.value === name) {
@@ -1209,6 +1249,15 @@ onMounted(() => {
   if (showFieldOfRegard.value) {
     fieldOfRegardLayer.addTo(map.value as Map);
   }
+
+  createUserEntry();
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      updateUserData();
+    } else {
+      resetData();
+    }
+  });
   
 });
 
@@ -1507,6 +1556,116 @@ function activateExtremeEvents() {
   }
 }
 
+async function createUserEntry() {
+  if (responseOptOut.value) {
+    return;
+  }
+
+  const response = await fetch(`${STORY_DATA_URL}/${uuid}`, {
+    method: "GET",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    headers: { "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "" }
+  });
+  const content = await response.json();
+  const exists = response.status === 200 && content.response?.user_uuid != undefined;
+  if (exists) {
+    return;
+  }
+
+  fetch(`${STORY_DATA_URL}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+    },
+    body: JSON.stringify({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_uuid: uuid,
+    }),
+  });
+}
+
+function resetData() {
+  whatsNewOpenedCount = 0;
+  introductionOpenedCount = 0;
+  userGuideOpenedCount = 0;
+  aboutDataOpenedCount = 0;
+  creditsOpenedCount = 0;
+  shareButtonClickedCount = 0;
+  userSelectedCalendarDates = [];
+  userSelectedTimezones = [];
+  userSelectedLocations = [];
+  userSelectedNotableEvents = [];
+
+  aboutDataOpenTimeMs = 0;
+  userGuideOpenTimeMs = 0;
+  introductionOpenTimeMs = 0;
+  whatsNewOpenTimeMs = 0;
+  creditsOpenTimeMs = 0;
+
+  const now = Date.now();
+  creditsTimestamp = showCredits.value ? now : null;
+  aboutDataTimestamp = showAboutData.value ? now : null;
+}
+
+async function updateUserData() {
+  if (responseOptOut.value) {
+    return;
+  }
+
+  const now = Date.now();
+  const creditsTime = (showCredits.value && creditsTimestamp !== null) ? now - creditsTimestamp : creditsOpenTimeMs;
+  const aboutDataTime = (showAboutData.value && aboutDataTimestamp !== null) ? now - aboutDataTimestamp: aboutDataOpenTimeMs;
+  const whatsNewTime = (showChanges.value && whatsNewTimestamp !== null) ? now  - whatsNewTimestamp : whatsNewOpenTimeMs;
+  const introductionTime = (introductionOpen.value && introductionTimestamp !== null) ? now - introductionTimestamp : introductionOpenTimeMs;
+  const userGuideTime = (userGuideOpen.value && userGuideOpenTimestamp !== null) ? now - userGuideTimestamp : userGuideOpenTimeMs;
+
+  fetch(`${STORY_DATA_URL}/${uuid}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+    },
+    body: JSON.stringify({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_whats_new_opened_count: whatsNewOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_whats_new_open_time_ms: whatsNewTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_introduction_opened_count: introductionOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_introduction_open_time_ms: introductionTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_user_guide_opened_count: userGuideOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_user_guide_open_time_ms: userGuideTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_about_data_opened_count: aboutDataOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_about_data_open_time_ms: aboutDataTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_credits_opened_count: creditsOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_credits_open_time_ms: creditsTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_share_button_clicked_count: shareButtonClickedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_calendar_dates: userSelectedCalendarDates,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_timezones: userSelectedTimezones,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_locations: userSelectedLocations,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_notable_events: userSelectedNotableEvents,
+    }),
+    keepalive: true,
+  }).then(() => {
+    resetData();
+  });
+}
+
 watch(() => timestampsLoaded.value, (loaded: boolean) => {
   if (loaded) {
     console.log('timestamps loaded');
@@ -1534,7 +1693,6 @@ watch(() => timestamp.value, (_val: number) => {
 
 watch(() => introSlide.value, (val: number) => {
   inIntro.value = val < 5;
-  return;
 });
 
 watch(() => dontShowIntro.value, (val: boolean) => {
@@ -1648,6 +1806,61 @@ watch(() => showChanges.value, (_value: boolean) => {
 watch(() => showExtendedRange.value, (_value: boolean) => {
   updateURL();
   imagePreload();
+});
+
+watch(showChanges, (show: boolean) => {
+  whatsNewOpenedCount += 1;
+  const now = Date.now();
+  if (show) {
+    whatsNewTimestamp = now;
+  } else if (whatsNewTimestamp !== null) {
+    whatsNewOpenTimeMs += (now - whatsNewTimestamp);
+    whatsNewTimestamp = null;
+  }
+});
+
+watch(showAboutData, (show: boolean) => {
+  aboutDataOpenedCount += 1;
+  const now = Date.now();
+  if (show) {
+    aboutDataTimestamp = now;
+  } else if (aboutDataTimestamp !== null) {
+    aboutDataOpenTimeMs += (now - aboutDataTimestamp);
+    aboutDataTimestamp = null;
+  }
+});
+
+watch(showCredits, (show: boolean) => {
+  creditsOpenedCount += 1;
+  const now = Date.now();
+  if (show) {
+    creditsTimestamp = now;
+  } else if (creditsTimestamp !== null) {
+    creditsOpenTimeMs += (now - creditsTimestamp);
+    creditsTimestamp = null;
+  }
+});
+
+watch(introductionOpen, (open: boolean) => {
+  introductionOpenedCount += 1;
+  const now = Date.now();
+  if (open) {
+    introductionTimestamp = now;
+  } else if (introductionTimestamp !== null) {
+    introductionOpenTimeMs += (now - introductionTimestamp);
+    introductionTimestamp = null;
+  }
+});
+
+watch(userGuideOpen, (open: boolean) => {
+  userGuideOpenedCount += 1;
+  const now = Date.now();
+  if (open) {
+    userGuideTimestamp = now;
+  } else if (userGuideTimestamp !== null) {
+    userGuideOpenTimeMs += (now - userGuideTimestamp);
+    userGuideTimestamp = null;
+  }
 });
 </script>
   
