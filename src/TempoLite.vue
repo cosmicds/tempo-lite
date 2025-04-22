@@ -833,6 +833,49 @@
       <credit-logos/>
     </div>
   </div>
+
+   <!-- Data collection opt-out dialog -->
+    <v-dialog
+      scrim="false"
+      v-model="showPrivacyDialog"
+      max-width="400px"
+      id="privacy-popup-dialog"
+    >
+      <v-card>
+        <v-card-text>
+          To evaluate usage of this app, <strong>anonymized</strong> data may be collected, including locations viewed and map quiz responses. "My Location" data is NEVER collected.
+        </v-card-text>
+        <v-card-actions class="pt-3">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="#BDBDBD"
+            href="https://www.cfa.harvard.edu/privacy-statement"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+          Privacy Policy
+          </v-btn>
+          <v-btn
+            color="#ff6666"
+            @click="() => {
+              responseOptOut = true;
+              showPrivacyDialog = false;
+            }"
+          >
+          Opt out
+          </v-btn>
+          <v-btn 
+            color="green"
+            @click="() => {
+              responseOptOut = false;
+              showPrivacyDialog = false;
+            }"
+          >
+            Allow
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </v-app>
 </template>
   
@@ -935,6 +978,7 @@ const sheet = ref<SheetType>(null);
 const accentColor = ref("#068ede");
 const accentColor2 = ref("#ffcc33");
 
+let hasOptOutBeenOpened = false;
 const introductionOpen = computed(() => inIntro.value && (introSlide.value === 1));
 const userGuideOpen = computed(() => inIntro.value && (introSlide.value === 4));
 
@@ -965,6 +1009,7 @@ const UUID_KEY = "tempo-lite-uuid" as const;
 const storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
 const maybeUUID = window.localStorage.getItem(UUID_KEY);
 const optOut = typeof storedOptOut === "string" ? storedOptOut === "true" : null;
+const showPrivacyDialog = ref(false);
 const responseOptOut = ref(optOut);
 const existingUser = maybeUUID !== null;
 const uuid = maybeUUID ?? v4();
@@ -1740,6 +1785,20 @@ watch(() => dontShowIntro.value, (val: boolean) => {
   }
 });
 
+watch(inIntro, (value: boolean) => {
+  if (!value) {
+    if (responseOptOut.value === null && !hasOptOutBeenOpened) {
+      showPrivacyDialog.value = true;
+    }
+  }
+});
+
+watch(showPrivacyDialog, (show: boolean) => {
+  if (show) {
+    hasOptOutBeenOpened = true;
+  }
+});
+
 watch(() => loadedImagesProgress.value, (val: number) => {
   playing.value = false;
   const btn = document.querySelector('#play-pause-button');
@@ -2075,6 +2134,28 @@ ul {
   }
 }
 
+#privacy-popup-dialog {
+
+  .v-card-text {
+    color: #BDBDBD;
+  }
+
+  .v-overlay__content {
+    font-size: var(--default-font-size);
+    background-color: purple;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+
+  .v-btn--size-default {
+      font-size: calc(0.9 * var(--default-font-size));
+    }  
+
+  .v-card-actions .v-btn {
+    padding: 0 4px;
+  }
+}
 
 #splash-screen {
   color: #E0E0E0;
