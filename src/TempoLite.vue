@@ -60,7 +60,7 @@
               </div>
             
               <div id="splash-screen-acknowledgements">
-                Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
+                Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a>.
                 
                 <div id="splash-screen-logos">
                   <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
