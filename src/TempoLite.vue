@@ -1799,6 +1799,12 @@ watch(showPrivacyDialog, (show: boolean) => {
   }
 });
 
+watch(responseOptOut, (optOut: boolean | null) => {
+  if (responseOptOut.value !== null) {
+    window.localStorage.setItem(OPT_OUT_KEY, String(optOut));
+  }
+});
+
 watch(() => loadedImagesProgress.value, (val: number) => {
   playing.value = false;
   const btn = document.querySelector('#play-pause-button');
