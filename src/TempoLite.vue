@@ -372,6 +372,7 @@
                     density="compact"
                     hide-details
                     class="mb-4"
+                    @end="onOpacitySliderEnd"
                   >
                 </v-slider>
               </div>
@@ -527,6 +528,7 @@
             show-ticks="always"
             hide-details
             :disabled="loadedImagesProgress < 100"
+            @end="onTimeSliderEnd"
           >
             <template v-slot:thumb-label>
               <div class="thumb-label">
@@ -998,6 +1000,13 @@ let creditsOpenedCount = 0;
 let creditsTimestamp = null as number | null;
 let creditsOpenTimeMs = 0;
 let shareButtonClickedCount = 0;
+let playButtonClickedCount = 0;
+let timeSliderUsedCount = 0;
+let opacitySliderUsedCount = 0;
+let fieldOfRegardToggled = false;
+let cloudMaskToggled = false;
+let hiResDataToggled = false;
+
 let userSelectedCalendarDates: number[] = [];
 let userSelectedTimezones: string[] = [];
 let userSelectedLocations: string[] = [];
@@ -1639,6 +1648,14 @@ function activateExtremeEvents() {
   }
 }
 
+function onTimeSliderEnd(_value: number) {
+  timeSliderUsedCount += 1; 
+}
+
+function onOpacitySliderEnd(_value: number) {
+  opacitySliderUsedCount += 1;
+}
+
 async function createUserEntry() {
   if (responseOptOut.value) {
     return;
@@ -1676,6 +1693,9 @@ function resetData() {
   aboutDataOpenedCount = 0;
   creditsOpenedCount = 0;
   shareButtonClickedCount = 0;
+  playButtonClickedCount = 0;
+  timeSliderUsedCount = 0;
+  opacitySliderUsedCount = 0;
   userSelectedCalendarDates = [];
   userSelectedTimezones = [];
   userSelectedLocations = [];
@@ -1686,6 +1706,9 @@ function resetData() {
   introductionOpenTimeMs = 0;
   whatsNewOpenTimeMs = 0;
   creditsOpenTimeMs = 0;
+  fieldOfRegardToggled = false;
+  cloudMaskToggled = false;
+  hiResDataToggled = false;
 
   const now = Date.now();
   creditsTimestamp = showCredits.value ? now : null;
@@ -1742,6 +1765,18 @@ async function updateUserData() {
       user_selected_locations: userSelectedLocations,
       // eslint-disable-next-line @typescript-eslint/naming-convention
       user_selected_notable_events: userSelectedNotableEvents,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_play_clicked_count: playButtonClickedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_time_slider_used_count: timeSliderUsedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_opacity_slider_used_count: opacitySliderUsedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      field_of_regard_toggled: fieldOfRegardToggled,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      cloud_mask_toggled: cloudMaskToggled,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      high_res_data_toggled: hiResDataToggled,
     }),
     keepalive: true,
   }).then(() => {
@@ -1749,7 +1784,7 @@ async function updateUserData() {
   });
 }
 
-watch(() => timestampsLoaded.value, (loaded: boolean) => {
+watch(timestampsLoaded, (loaded: boolean) => {
   if (loaded) {
     console.log('timestamps loaded');
     if (initState.value.t) {
@@ -1770,15 +1805,15 @@ watch(() => timestampsLoaded.value, (loaded: boolean) => {
   }
 });
 
-watch(() => timestamp.value, (_val: number) => {
+watch(timestamp, (_val: number) => {
   updateURL();
 });
 
-watch(() => introSlide.value, (val: number) => {
+watch(introSlide, (val: number) => {
   inIntro.value = val < 5;
 });
 
-watch(() => dontShowIntro.value, (val: boolean) => {
+watch(dontShowIntro, (val: boolean) => {
   window.localStorage.setItem("dontShowIntro", val.toString());
   if (!val) {
     inIntro.value = true;
@@ -1805,7 +1840,7 @@ watch(responseOptOut, (optOut: boolean | null) => {
   }
 });
 
-watch(() => loadedImagesProgress.value, (val: number) => {
+watch(loadedImagesProgress, (val: number) => {
   playing.value = false;
   const btn = document.querySelector('#play-pause-button');
   if (btn) {
@@ -1817,31 +1852,34 @@ watch(() => loadedImagesProgress.value, (val: number) => {
   }
 });
 
-watch(() => playing.value, (val: boolean) => {
+watch(playing, (val: boolean) => {
   if (val) {
     play();
+    playButtonClickedCount += 1;
   } else {
     pause();
   }
 });
 
-watch(() => imageUrl.value, (_url: string) => {
+watch(imageUrl, (_url: string) => {
   updateFieldOfRegard();
 });
 
-watch(() => cloudUrl.value, (_url: string) => {
-  // nothing to do here.
-});
+// watch(cloudUrl, (_url: string) => {
+//   // nothing to do here.
+// });
 
-watch(() => useHighRes.value, () => {
+watch(useHighRes, () => {
+  hiResDataToggled = true;
   imagePreload();
 });
 
-watch(() => imageBounds.value, (bounds: L.LatLngBounds) => {
+watch(imageBounds, (bounds: L.LatLngBounds) => {
   console.log('image bounds change to', whichDataSet.value, bounds.toBBoxString());
 });
 
-watch(() => showFieldOfRegard.value, (show: boolean) => {
+watch(showFieldOfRegard, (show: boolean) => {
+  fieldOfRegardToggled = true;
   if (show) {
     fieldOfRegardLayer.addTo(map.value as Map);
   } else if (map.value) {
@@ -1849,7 +1887,11 @@ watch(() => showFieldOfRegard.value, (show: boolean) => {
   }
 });
 
-watch(() => showLocationMarker.value, (show: boolean) => {
+watch(showClouds, (_show: boolean) => {
+  cloudMaskToggled = true;
+});
+
+watch(showLocationMarker, (show: boolean) => {
   if (locationMarker.value) {
     if (show) {
       locationMarker.value.addTo(map.value as Map);
@@ -1861,11 +1903,11 @@ watch(() => showLocationMarker.value, (show: boolean) => {
   }
 });
 
-watch(() => timestamps.value, () => {
+watch(timestamps, () => {
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
 });
 
-watch(() => radio.value, (value: number | null) => {
+watch(radio, (value: number | null) => {
   if (value == null) {
     setNearestDate(singleDateSelected.value.getTime());
     sublocationRadio.value = null;
@@ -1882,7 +1924,7 @@ watch(() => radio.value, (value: number | null) => {
   }
 });
 
-watch(() => singleDateSelected.value, (value: Date) => {
+watch(singleDateSelected, (value: Date) => {
   // console.log(`singleDateSelected ${value}`);
   const timestamp = value.getTime();
   setNearestDate(timestamp);
@@ -1893,20 +1935,20 @@ watch(() => singleDateSelected.value, (value: Date) => {
   imagePreload();
 });
 
-watch(() => sublocationRadio.value, (value: number | null) => {
+watch(sublocationRadio, (value: number | null) => {
   if (value !== null && radio.value != null) {
     goToLocationOfInterst(radio.value, value);
   }
 });
 
 
-watch(() => showChanges.value, (_value: boolean) => {
+watch(showChanges, (_value: boolean) => {
   if (showNotice.value) {
     showNotice.value = false;
   }
 });
 
-watch(() => showExtendedRange.value, (_value: boolean) => {
+watch(showExtendedRange, (_value: boolean) => {
   updateURL();
   imagePreload();
 });
@@ -2556,8 +2598,8 @@ a {
 
   .v-slider-thumb {
 
-    .v-slider-thumb__surface::after {
-      background-image: url("./assets/smithsonian.png");
+  .v-slider-thumb__surface::after {
+    background-image: url("./assets/smithsonian.png");
       background-size: 30px 30px;
       height: 30px;
       width: 30px;
