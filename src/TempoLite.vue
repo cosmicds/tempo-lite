@@ -185,7 +185,7 @@
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
         <ul class="snackbar-alert-ul">
           <li class="change-item mb-5" v-for="change in changes" :key="change.date" :data-date="change.date">
-            <span style="font-weight:bold;">{{ change.date }}</span><br> <span v-html="change.html">  </span>{{ change.text }}
+            <span :style='{"font-weight":"bold", "color": `${change.highlight ? "var(--smithsonian-yellow)" : "currentColor"}` }'>{{ change.date }}</span><br> <span v-html="change.html">  </span>{{ change.text }}
           </li>
         </ul>
         <!-- <template v-slot:activator="{ onClick, id }">
@@ -197,7 +197,7 @@
 
       <div id="menu-area">
         <v-btn 
-          v-if="(new Date('2025-02-21 00:00:00') > new Date())"
+          v-if="(new Date('2025-05-7 00:00:00') > new Date())"
           class='whats-new-button pulse' 
           aria-label="What's new" 
           @click="showChanges = true" 
