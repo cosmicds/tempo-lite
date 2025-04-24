@@ -50,7 +50,7 @@
                   @click="introSlide++"
                   @keyup.enter="introSlide++"
                   :color="accentColor"
-                  :density="xSmallSize ? 'compact' : 'default'"
+                  :density="display.smAndDown ? 'compact' : 'default'"
                   size="x-large"
                   variant="elevated"
                   rounded="lg"
@@ -60,7 +60,7 @@
               </div>
             
               <div id="splash-screen-acknowledgements">
-                Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
+                Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a>.
                 
                 <div id="splash-screen-logos">
                   <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
@@ -164,7 +164,7 @@
     id="main-content"
   > 
   <marquee-alert 
-    v-if="smallSize && showExtendedRangeFeatures"
+    v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" 
     timeout="30000"
     message="You can view data with an extend range for the 
             duration of the LA fires. See the 🔥 button on the map"
@@ -219,6 +219,7 @@
             size="small"
             rounded="1"
             :tooltip-disabled="mobile"
+            @click="shareButtonClickedCount += 1"
             alert
           />
         <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
@@ -280,11 +281,11 @@
       <div id="where" class="big-label">where</div>
       <div id="map-container">
         <colorbar-horizontal
-          v-if="$vuetify.display.width <= 750"
+          v-if="display.width.value <= 750"
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cbarNO2"
+          :cmap="cmapNO2"
           start-value="1"
           :end-value="showingExtendedRange ? '300' : '150'"
           :extend="true"
@@ -371,6 +372,7 @@
                     density="compact"
                     hide-details
                     class="mb-4"
+                    @end="onOpacitySliderEnd"
                   >
                 </v-slider>
               </div>
@@ -448,13 +450,8 @@
             stay-open
             buttonSize="xl"
             persist-selected
-            :search-provider="geocodingInfoForSearch"
-            @set-location="(feature: MapBoxFeature) => {
-              if (feature !== null) {
-                map?.setView([feature.center[1], feature.center[0]], 12);
-                setMarker([feature.center[1], feature.center[0]]);
-              }
-            }"
+            :search-provider="geocodingInfoForSearchLimited"
+            @set-location="setLocationFromSearch"
             @error="(error: string) => searchErrorMessage = error"
           ></location-search>
         </div>
@@ -463,7 +460,7 @@
           <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
             {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
           </v-btn>
-          <v-btn v-if="smallSize && showExtendedRangeFeatures" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
+          <v-btn v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
             🔥
           </v-btn>
           <cds-dialog title="Extreme Events" v-model="showLADialog" :color="accentColor2">
@@ -472,10 +469,10 @@
                 <p>
                   Some events like the January 2025 Los Angeles fires generate so much smoke 
                   and pollution that NO<sub>2</sub> levels can greatly
-                   exceed the default range used in the color scale 
-                   for the TEMPO-lite viewer. To show more clearly where 
-                   the very highest levels of NO<sub>2</sub> are present, 
-                   you can use an extended color stretch.   
+                    exceed the default range used in the color scale 
+                    for the TEMPO-lite viewer. To show more clearly where 
+                    the very highest levels of NO<sub>2</sub> are present, 
+                    you can use an extended color stretch.   
                 </p>
                 <p>
                   By default we display values from 0.01-1.5&times;10<sup>16</sup> molecules per square centimeter, 
@@ -501,11 +498,11 @@
         
         </div>
         <colorbar 
-          v-if="$vuetify.display.width > 750"
+          v-if="display.width.value > 750"
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cbarNO2"
+          :cmap="cmapNO2"
           start-value="1"
           :end-value="showingExtendedRange ? '300' : '150'"
           :extend="true"
@@ -531,6 +528,7 @@
             show-ticks="always"
             hide-details
             :disabled="loadedImagesProgress < 100"
+            @end="onTimeSliderEnd"
           >
             <template v-slot:thumb-label>
               <div class="thumb-label">
@@ -548,7 +546,7 @@
 
         
 
-       <div id="user-options">
+        <div id="user-options">
         <div id="all-dates">
           <h2>Select a Date</h2>  
           <div class="d-flex flex-row align-center">
@@ -560,7 +558,7 @@
                   if (value != null && value.getTime() != singleDateSelected.getTime()) {
                     radio = null;
                     singleDateSelected = value;
-                    $refs.calendar.closeMenu();
+                    calendar?.closeMenu();
                   }
                 }"
                 :allowed-dates="uniqueDays"
@@ -642,8 +640,8 @@
         <hr style="border-color: grey">
 
 
-         <div id="date-radio">
-           <!-- make a v-radio-group with 3 options -->
+          <div id="date-radio">
+            <!-- make a v-radio-group with 3 options -->
           <h2>Notable Dates</h2>
           <v-radio-group
             v-model="radio"
@@ -837,47 +835,247 @@
       <credit-logos/>
     </div>
   </div>
+
+   <!-- Data collection opt-out dialog -->
+    <v-dialog
+      scrim="false"
+      v-model="showPrivacyDialog"
+      max-width="400px"
+      id="privacy-popup-dialog"
+    >
+      <v-card>
+        <v-card-text>
+          To evaluate usage of this app, <strong>anonymized</strong> data may be collected, including locations viewed and map quiz responses. "My Location" data is NEVER collected.
+        </v-card-text>
+        <v-card-actions class="pt-3">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="#BDBDBD"
+            href="https://www.cfa.harvard.edu/privacy-statement"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+          Privacy Policy
+          </v-btn>
+          <v-btn
+            color="#ff6666"
+            @click="() => {
+              responseOptOut = true;
+              showPrivacyDialog = false;
+            }"
+          >
+          Opt out
+          </v-btn>
+          <v-btn 
+            color="green"
+            @click="() => {
+              responseOptOut = false;
+              showPrivacyDialog = false;
+            }"
+          >
+            Allow
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </v-app>
 </template>
-
-<script lang="ts">
-import { defineComponent } from "vue";
+  
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, ComputedRef } from "vue";
+import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
+import { useDisplay } from 'vuetify';
+import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import L, { LatLngExpression, Map } from "leaflet";
+import { v4 } from "uuid";
 import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
-
-import { API_BASE_URL } from "@cosmicds/vue-toolkit";
-
-import  { cividis } from "./cividis";
-import  { svs } from "./svs_cmap";
-import { cbarNO2, cbarNO2ColorsRevised2023 } from "./revised_cmap";
+import { cbarNO2 } from "./revised_cmap";
 import fieldOfRegard from "./assets/TEMPO_FOR.json";
 import augustFieldOfRegard from "./assets/august_for.json";
-// We DO use MapBoxFeature in the template, but eslint isn't picking this up for some reason
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { InterestingEvent, LocationOfInterest } from "./types";
+import { useLeafletMap } from "./composables/useLeafletMap";
+import { useImageOverlay } from "./composables/useLeafletImageOverlay";
+import { useLeafletBounds } from './composables/useLeafletBounds';
+import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import { interestingEvents } from "./interestingEvents";
 
+const display = useDisplay();
+const calendar = ref<DatePickerInstance | null>(null);
 type SheetType = "text" | "video" | null;
 type Timeout = ReturnType<typeof setTimeout>;
 
-interface TimezoneInfo {
-  tz: string;
-  name: string;
+
+/**************
+ * UI Setup
+ *************/
+// const hash = window.location.hash;
+const urlParams = new URLSearchParams(window.location.search);
+const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
+const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
+const extendedRange = ref(window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"); //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
+const hideIntro = urlParams.get("hideintro") === "true";
+const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore --> msPointerEnabled may not be defined in window.navigator
+const touchscreen = ref(('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled);
+
+
+
+const STORY_VISIT_URL = `${API_BASE_URL}/tempo-lite/visit`;
+function pingServer(venue: string) {
+
+  fetch(STORY_VISIT_URL, {
+    
+    method: "POST",
+    
+    headers: {
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? ''
+    },
+    
+    body: JSON.stringify({
+      info: { venue }
+    })
+    
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error("Error pinging server", response.status, response.statusText);
+      } 
+    }).
+    catch((error) => {
+      console.error("Error pinging server", error);
+    });
 }
 
+const venue = (urlParams.get("venue") ?? '').replace(/,/g, '-');
+
+if (venue !== '') {
+  // get current value of venue
+  const venues =  window.localStorage.getItem("venues") ?? '';
+  // if they haven't visited this venue before, ping the server & save it
+  if (!venues.includes(venue)) {
+    pingServer(venue);
+    window.localStorage.setItem("venues", venues ? `${venues},${venue}` : venue);
+  }
+}
+
+
+function clearUrl(hash = false) {
+  const newUrl = location.origin + location.pathname + (hash ? location.hash : '');
+  window.history.replaceState({}, '', newUrl);
+}
+clearUrl(true);
+
+
+const introSlide = ref(1);
+const inIntro = ref(!WINDOW_DONTSHOWINTRO);
+const dontShowIntro = ref(WINDOW_DONTSHOWINTRO);
+const showNotice = ref(true);
+const sheet = ref<SheetType>(null);
+const accentColor = ref("#068ede");
+const accentColor2 = ref("#ffcc33");
+
+let hasOptOutBeenOpened = false;
+const introductionOpen = computed(() => inIntro.value && (introSlide.value === 1));
+const userGuideOpen = computed(() => inIntro.value && (introSlide.value === 4));
+
+let whatsNewOpenedCount = 0;
+let whatsNewTimestamp = null as number | null;
+let whatsNewOpenTimeMs = 0;
+let introductionOpenedCount = 0;
+let introductionTimestamp = null as number | null;
+let introductionOpenTimeMs = 0;
+let userGuideOpenedCount = 0;
+let userGuideTimestamp = null as number | null;
+let userGuideOpenTimeMs = 0;
+let aboutDataOpenedCount = 0;
+let aboutDataTimestamp = null as number | null;
+let aboutDataOpenTimeMs = 0;
+let creditsOpenedCount = 0;
+let creditsTimestamp = null as number | null;
+let creditsOpenTimeMs = 0;
+let shareButtonClickedCount = 0;
+let playButtonClickedCount = 0;
+let timeSliderUsedCount = 0;
+let opacitySliderUsedCount = 0;
+let fieldOfRegardToggled = false;
+let cloudMaskToggled = false;
+let hiResDataToggled = false;
+
+let userSelectedCalendarDates: number[] = [];
+let userSelectedTimezones: string[] = [];
+let userSelectedLocations: string[] = [];
+let userSelectedNotableEvents: [string, string][] = [];
+
+const STORY_DATA_URL = `${API_BASE_URL}/tempo-lite/data`;
+const OPT_OUT_KEY = "tempo-lite-optout" as const;
+const UUID_KEY = "tempo-lite-uuid" as const;
+const storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
+const maybeUUID = window.localStorage.getItem(UUID_KEY);
+const optOut = typeof storedOptOut === "string" ? storedOptOut === "true" : null;
+const showPrivacyDialog = ref(false);
+const responseOptOut = ref(optOut);
+const existingUser = maybeUUID !== null;
+const uuid = maybeUUID ?? v4();
+if (!existingUser) {
+  window.localStorage.setItem(UUID_KEY, uuid);
+}
+
+function selectSheet(name: SheetType) {
+  if (sheet.value === name) {
+    sheet.value = null;
+    nextTick(() => {
+      blurActiveElement();
+    });
+  } else {
+    sheet.value = name;
+  }
+}
+
+const showTextSheet = computed({
+  get() {
+    return sheet.value === 'text';
+  },
+  set(_value: boolean) {
+    selectSheet('text');
+  }
+});
+
+const cssVars = computed(() => {
+  return {
+    '--accent-color': accentColor.value,
+    '--accent-color-2': accentColor2.value,
+    '--app-content-height': showTextSheet.value ? '66%' : '100%',
+  };
+});
+
+const smallSize = computed(() => {
+  return display.smAndDown.value;
+});
+
+const mobile = computed(() => {
+  return smallSize.value && touchscreen.value;
+});
+
+
+function zpad(n: number, width: number = 2, character: string = "0"): string {
+  return n.toString().padStart(width, character);
+}
+
+/************
+ * TIMESTAMP SETUP
+ ************/
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 
-const erdTimestamps: number[] = [];
-const newTimestamps: number[] = [];
-
-const cloudTimestamps: number[] = [];
-
-const fosterTimestamps = [
+const erdTimestamps = ref<number[]>([]);
+const newTimestamps = ref<number[]>([]);
+const cloudTimestamps = ref<number[]>([]);
+const fosterTimestamps = ref<number[]>([
   1698838920000,
   1698841320000,
   1698843720000,
@@ -922,997 +1120,916 @@ const fosterTimestamps = [
   1711662240000,
   1711665840000,
   1711668240000,
-];
+]);
 
-// combine the timestamps from the two sources
 
-const timestamps = fosterTimestamps;
-const STORY_VISIT_URL = `${API_BASE_URL}/tempo-lite/visit`;
-function pingServer(venue: string) {
+const timestamps = ref<number[]>(fosterTimestamps.value);
+const extendedRangeTimestamps = ref<number[]>([]);
+const showExtendedRange = ref(extendedRange.value);
+const useHighRes = ref(false);
+const {
+  timeIndex,
+  timestamp,
+  date,
+  singleDateSelected,
+  maxIndex,
+  minIndex,
+  uniqueDays,
+  uniqueDaysIndex,
+  setNearestDate,
+  moveBackwardOneDay,
+  moveForwardOneDay,
+  nearestDateIndex } = useUniqueTimeSelection(timestamps);
 
-  fetch(STORY_VISIT_URL, {
-    
-    method: "POST",
-    
-    headers: {
-      "Content-Type": "application/json",
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? ''
-    },
-    
-    body: JSON.stringify({
-      info: { venue }
+const timestampsLoaded = ref(false);
+const fosterTimestampsSet = ref(new Set(fosterTimestamps.value));
+const erdTimestampsSet = ref(new Set());
+const newTimestampsSet = ref(new Set());
+const cloudTimestampsSet = ref(new Set());
+const extendedRangeTimestampsSet = ref(new Set());
+const timestampsSet = ref(new Set(fosterTimestamps.value));
+
+async function updateTimestamps() {
+  return Promise.all([
+    getExtendedRangeTimestamps().then(ts => {
+      extendedRangeTimestamps.value = ts;
+      extendedRangeTimestampsSet.value = new Set(ts);
+    }),
+    getTimestamps().then((ts) => {
+      erdTimestamps.value = ts.early_release;
+      erdTimestampsSet.value = new Set(ts.early_release);
+      newTimestamps.value = ts.released;
+      newTimestampsSet.value = new Set(ts.released);
+      timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+      timestampsSet.value = new Set(timestamps.value);
+      cloudTimestamps.value = ts.clouds;
+      cloudTimestampsSet.value = new Set(ts.clouds);
     })
-    
-  })
-    .then((response) => {
-      if (!response.ok) {
-        console.error("Error pinging server", response.status, response.statusText);
-      } 
-    }).
-    catch((error) => {
-      console.error("Error pinging server", error);
-    });
+  ]);
 }
 
-const urlParams = new URLSearchParams(window.location.search);
-const hideIntro = urlParams.get("hideintro") === "true";
-const WINDOW_DONTSHOWINTRO = hideIntro ? true: window.localStorage.getItem("dontShowIntro") === 'true';
+updateTimestamps().then(() => { timestampsLoaded.value = true; })
+  .then(() => {
+    if (window.location.hash.includes("extreme-events")) {
+      nextTick(() => {
+        activateExtremeEvents();
+      });
+    }
+  });
 
-const venue = (urlParams.get("venue") ?? '').replace(/,/g, '-');
 
-if (venue !== '') {
-  // get current value of venue
-  const venues =  window.localStorage.getItem("venues") ?? '';
-  // if they haven't visited this venue before, ping the server & save it
-  if (!venues.includes(venue)) {
-    pingServer(venue);
-    window.localStorage.setItem("venues", venues ? `${venues},${venue}` : venue);
-  }
-}
+/************
+ * INITIAL LOCATIONS SETUP
+ ************/
+
 
 const initLat = parseFloat(urlParams.get("lat") || '40.044');
 const initLon = parseFloat(urlParams.get("lon") || '-98.789');
 const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
+const initState = ref({
+  loc: [initLat, initLon] as LatLngExpression,
+  zoom: initZoom,
+  t: initTime ? +initTime : null
+});
 
 
-// const hash = window.location.hash;
-const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
-const extendedRange = window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"; //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
-// set the url to be only the base url, path and hash
-const newUrl = location.origin + location.pathname + location.hash;
-window.history.replaceState({}, '', newUrl);
-
-const homeLat =  40.044;
-const homeLon =  -98.789;
-const homeZoom =  4;
-
-function zpad(n: number, width: number = 2, character: string = "0"): string {
-  return n.toString().padStart(width, character);
-}
-
-export default defineComponent({
-  data() {
-    const showSplashScreen = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
-    const novDecBounds = new L.LatLngBounds(
-      new L.LatLng(17.025, -154.975),
-      new L.LatLng(63.975, -24.475)
-    );
-    
-    const marchBounds = new L.LatLngBounds(
-      new L.LatLng(14.01, -167.99),
-      new L.LatLng(72.99, -13.01)
-    );
-
-    const fieldOfRegardLayer = L.geoJSON(
-      fieldOfRegard as GeoJSON.GeometryCollection,
-      {
-        style: {
-          color: "#c10124",
-          fillColor: "transparent",
-          weight: 1,
-          opacity: 0.8,
-        },
-      }
-    ) as L.Layer;
-    
-    
+const homeLat = 40.044;
+const homeLon = -98.789;
+const homeZoom = 4;
+const homeState = ref({
+  loc: [homeLat, homeLon] as LatLngExpression,
+  zoom: homeZoom,
+  t: null as number | null
+});
 
 
-  
+const radio = ref<number | null>(null);
+const sublocationRadio = ref<number | null>(null);
 
 
-    const opacity = 0.9;
-    return {
-      initState: {
-        loc: [initLat, initLon] as LatLngExpression,
-        zoom: initZoom,
-        t: initTime ? +initTime : null
-      },
-      homeState: {
-        loc: [homeLat, homeLon] as LatLngExpression,
-        zoom: homeZoom,
-        t: null as number | null
-      },
-      showSplashScreen,
-      sheet: null as SheetType,
-      layersLoaded: false,
-      positionSet: false,
-      
-      accentColor: "#068ede",
-      accentColor2: "#ffcc33",
-      buttonColor: "#ffffff",
-      introSlide: 1,
-      
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { leafletBounds: imageBounds, boundsArray: bounds } = useLeafletBounds(date);
 
-      inIntro: !WINDOW_DONTSHOWINTRO,
-      dontShowIntro: WINDOW_DONTSHOWINTRO,
-      loadingOverlay: true,
 
-      showNotice: true,
-      
-      radio: null as number | null,
-      sublocationRadio: null as number | null,
-
-      touchscreen: false,
-      playInterval: null as Timeout | null,
-      map: null as Map | null,
-      basemap: null as L.TileLayer.WMS | null | L.TileLayer,
-      novDecBounds,
-      marchBounds: new L.LatLngBounds(
-        new L.LatLng(14.01, -167.99),
-        new L.LatLng(72.99, -13.01)
-      ),
-      bounds: marchBounds.toBBoxString().split(",").map(parseFloat),
-      fieldOfRegardLayer,
-      interestingEvents,
-
-      customImageUrl: "",
-
-      // timezoneOptions: [
-      //   { tz: 'US/Eastern', name: 'Eastern Daylight' },
-      //   { tz: 'US/Central', name: 'Central Daylight' },
-      //   { tz: 'US/Mountain', name: 'Mountain Daylight' },
-      //   { tz: 'US/Arizona', name: 'Mountain Standard' },
-      //   { tz: 'US/Pacific', name: 'Pacific Daylight' },
-      //   { tz: 'US/Alaska', name: 'Alaska Daylight' },
-      //   { tz: 'UTC', name: 'UTC' },
-      // ] as TimezoneInfo[],
-      selectedTimezone: "US/Eastern",
-
-      timestep: 0,
-      timeIndex: 0,
-      minIndex: 0,
-      maxIndex: timestamps.length - 1,
-      timeValues: [...Array(timestamps.length).keys()],
-      playing: false,
-      imageOverlay: new L.ImageOverlay("", novDecBounds, {
-        opacity,
-        interactive: false,
-      }),
-      opacity,
-      timestamps,
-      erdTimestamps,
-      newTimestamps,
-      fosterTimestamps,    
-      timestampsLoaded: false,  
-      preload: true,
-      
-      singleDateSelected: new Date(),
-
-      searchOpen: true,
-      searchErrorMessage: null as string | null,
-
-      showControls: false,
-      showFieldOfRegard: true,
-      showCredits: false,
-      showUserGuide: false,
-      showAboutData: false,
-      
-      loadedImagesProgress: 0,
-      useHighRes: false,
-      
-      cloudOverlay: new L.ImageOverlay("", novDecBounds, {
-        opacity,
-        interactive: false,
-      }),
-      cloudTimestamps,
-      showClouds: false,
-      
-      showLocationMarker: true,
-      locationMarker: null as L.Marker | null,
-      currentUrl: window.location.href,
-      changes,
-      showChanges: false,
-      showExtendedRange: extendedRange,
-      showLADialog: false,
-      extendedRangeTimestamps: [] as number[],
-      showExtendedRangeFeatures
-    };
-  },
-
-  created() {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    this.touchscreen = ('ontouchstart' in window) || ('ontouchstart' in document.documentElement) || !!window.navigator.msPointerEnabled;
-    this.updateTimestamps().then(() => {this.timestampsLoaded = true;})
-      .then(() => {
-        if (window.location.hash.includes("extreme-events")) {
-          this.$nextTick(() => {
-            this.activateExtremeEvents();
-          });
-        }
-      });
-  },
-
-  mounted() {
-    window.addEventListener("hashchange", this.updateHash);
-    this.showSplashScreen = false;
-    this.map = L.map("map", { zoomControl: false }).setView(this.initState.loc, this.initState.zoom, {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      crs: L.CRS.EPSG4326
-    });
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const zoomHome = L.Control.zoomHome({homeCoordinates: this.homeState.loc, homeZoom: this.homeState.zoom});
-    const originalZH = zoomHome._zoomHome.bind(zoomHome);
-    zoomHome._zoomHome = (_e: Event) => {
-      originalZH();
-      this.sublocationRadio = null;
-      // check if location marker is not null and on map. if so remove it
-      if (this.locationMarker !== null) {
-        this.locationMarker.remove();
-      }
-    };
-    zoomHome.addTo(this.map);
-    this.addCoastlines();
-
-    // this.basemap = new L.TileLayer.WMS('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
-    //   crs: L.CRS.EPSG4326
-    // }).addTo(this.map as Map);
-    
-    const labelPane = this.map.createPane("labels");
-    labelPane.style.zIndex = "650";
-    labelPane.style.pointerEvents = "none";
-    
-    this.basemap = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png', {
-      minZoom: 0,
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      // crs: L.CRS.EPSG4326
-      pane: 'labels'
-    }).addTo(this.map as Map);
-
-    
-
-    // L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
-    //   attribution: 'OpenStreetMap, CartoDB',
-    //   pane: 'labels'
-    // }).addTo(this.map as Map);
-    
-    L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png', {
-      minZoom: 0,
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      pane: 'labels'
-    }).addTo(this.map as Map);
-    
-    this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
-    this.imageOverlay.setUrl(this.imageUrl).addTo(this.map as Map);
-    this.cloudOverlay.setUrl(this.cloudUrl).addTo(this.map as Map);
-    
-    this.updateFieldOfRegard();
-    if (this.showFieldOfRegard) {
-      this.fieldOfRegardLayer.addTo(this.map as Map);
-    }
-    
-    this.map.on('moveend', this.updateURL);
-    this.map.on('zoomend', this.updateURL);
-    
-  },
-  
-  beforeUnmount() {
-    // cleanup event handlers
-    if (this.map) {
-      this.map.off('movend');
-      this.map.off('zoomend');
-    }
-    
-  },
-
-  computed: {
-
-    /**
-    Properties related to device/screen characteristics
-    */
-    smallSize(): boolean {
-      return this.$vuetify.display.smAndDown;
-    },
-    mobile(): boolean {
-      return this.smallSize && this.touchscreen;
-    },
-
-    /**
-    This lets us inject component data into element CSS
-    */
-    cssVars() {
-      return {
-        '--accent-color': this.accentColor,
-        '--accent-color-2': this.accentColor2,
-        '--app-content-height': this.showTextSheet ? '66%' : '100%',
-      };
-    },
-
-    /**
-    Computed flags that control whether the relevant dialogs display.
-    The `sheet` data member stores which sheet is open, so these are just
-    computed wrappers around modifying/querying that which can be used as
-    dialog v-model values
-    */
-    showTextSheet: {
-      get(): boolean {
-        return this.sheet === 'text';
-      },
-      set(_value: boolean) {
-        this.selectSheet('text');
-      }
-    },
-
-    showVideoSheet: {
-      get(): boolean {
-        return this.sheet === "video";
-      },
-      set(value: boolean) {
-        this.selectSheet('video');
-        if (!value) {
-          const video = document.querySelector("#info-video") as HTMLVideoElement;
-          video.pause();
-        }
-      }
-    },
-    timestamp(): number {
-      return this.timestamps[this.timeIndex];
-    },
-    date() {
-      return new Date(this.timestamp);
-    },
-    
-    datesOfInterest(): Date[] {
-      return this.interestingEvents.map(event => event.date);
-    },
-
-    dateStrings(): string[] {
-      return this.interestingEvents.map(event => event.dateString);
-    },
-
-    locationsOfInterest(): LocationOfInterest[][] {
-      return this.interestingEvents.map(event => 
-        event.locations.map(loc => ({
-          ...loc,
-          index: this.nearestDateIndex(new Date(loc.time)),
-        }))
-      );
-    },
-
-    locationsOfInterestText(): string[][] {
-      return this.interestingEvents.map(event => 
-        event.locations.map(loc => loc.description)
-      );
-    },
-    
-    dateIsDST() {
-      const standardOffset = getTimezoneOffset(this.selectedTimezone, new Date(this.date.getUTCFullYear(), 0, 1));
-      const currentOffset = getTimezoneOffset(this.selectedTimezone, this.date);
-      // console.log(standardOffset / (3600 * 1000), currentOffset / (3600 * 1000));
-      // log offsets in houts
-      // console.log(`standard: ${standardOffset/ (3600 * 1000)}, current ${currentOffset  / (3600 * 1000)}`);
-      if (standardOffset === currentOffset) {
-        return false;
-      }
-      return true;
-    },
-    
-    timezoneOptions(): TimezoneInfo[] {
-      return [
-        { tz: 'US/Eastern', name: this.dateIsDST ? 'Eastern Daylight' : 'Eastern Standard' },
-        { tz: 'US/Central', name: this.dateIsDST ? 'Central Daylight' : 'Central Standard' },
-        { tz: 'US/Mountain', name: this.dateIsDST ? 'Mountain Daylight' : 'Mountain Standard' },
-        { tz: 'US/Arizona', name: 'Mountain Standard' },
-        { tz: 'US/Pacific', name: this.dateIsDST ? 'Pacific Daylight' : 'Pacific Standard' },
-        { tz: 'US/Alaska', name: this.dateIsDST ? 'Alaska Daylight' : 'Alaska Standard' },
-        { tz: 'UTC', name: 'UTC' },
-      ];
-    },
-    
-    // TODO: Maybe there's a built-in Date function to get this formatting?
-    thumbLabel(): string {
-      const offset = getTimezoneOffset(this.selectedTimezone, this.date);
-      const date = new Date(this.timestamp + offset); 
-      const hours = date.getUTCHours();
-      const amPm = hours >= 12 ? "PM" : "AM";
-      let hourValue = hours % 12;
-      if (hourValue === 0) {
-        hourValue = 12;
-      }
-      return `${this.date.getUTCMonth()+1}/${date.getUTCDate()}/${date.getUTCFullYear()} ${hourValue}:${date.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
-    },
-    
-    imageName(): string {
-      return this.getTempoFilename(this.date);
-    },
-    
-    imageUrl(): string {
-      if (this.customImageUrl) {
-        return this.customImageUrl;
-      }
-      const url = this.getTempoDataUrl(this.timestamp);
-      return url + this.imageName;
-    },
-    
-    cloudUrl(): string {
-      if (!this.showClouds) {
-        return '';
-      }
-
-      if (this.cloudTimestamps.includes(this.timestamp)) {
-        return this.getCloudFilename(this.date);
-      }
-      return '';
-    },
-    
-    cloudDataAvailable(): boolean {
-      return this.cloudTimestamps.includes(this.timestamp);
-    },
-    
-    whichDataSet(): string {
-      if (this.fosterTimestamps.includes(this.timestamp)) {
-        return 'TEMPO-lite';
-      }
-      
-      if (this.erdTimestamps.includes(this.timestamp)) {
-        return 'Early Release (V01)';
-      }
-      
-      if (this.newTimestamps.includes(this.timestamp)) {
-        return 'Level 3 (V03)';
-      }
-      
-      return 'Unknown';
-    },
-    
-    newBounds() {
-      return new L.LatLngBounds(
-        new L.LatLng(this.bounds[1], this.bounds[0]),
-        new L.LatLng(this.bounds[3], this.bounds[2])
-      );
-    },
-    
-    imageBounds() {
-      // currently the 2023 data is all V01
-      if (this.date.getUTCFullYear() === 2023) {
-        return this.novDecBounds;
-      } else if (this.date.getUTCFullYear() === 2024 && this.date.getUTCMonth() === 2) {
-        return this.marchBounds;
-      } else {
-        return this.newBounds;
-      }
-    },
-    
-    uniqueDays(): Date[] {
-      // eastern time
-      const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
-      const easternDates = this.timestamps.map(ts => new Date(ts + offset(new Date(ts))));
-      const days = easternDates.map(date => (new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).getTime());
-      const unique = Array.from(new Set(days));
-      return unique.map(ts => new Date(ts));
-    },
-    
-    highresAvailable() {
-      return this.newTimestamps.includes(this.timestamp);
-    },
-    
-    extendedRangeAvailable() {
-      return this.extendedRangeTimestamps.includes(this.timestamp);
-    },
-    
-    showingExtendedRange() {
-      return this.showExtendedRangeFeatures && this.showExtendedRange && this.extendedRangeAvailable;
-    },
-    
-    
-  },
-
-  methods: {
-    
-
-    setMarker(latlng: L.LatLngExpression) {
-      console.log(L.Icon.Default.prototype.options);
-      const icon = L.icon({
-        ...L.Icon.Default.prototype.options,
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      });
-      if (this.locationMarker == null) {
-        this.locationMarker = new L.Marker(latlng,{icon: icon, pane: 'labels', opacity:0.8}, );
-        // this.locationMarker.setZIndexOffset(1000);
-      } else {
-        this.locationMarker.setLatLng(latlng);
-      }
-      if (this.showLocationMarker) {
-        this.locationMarker.addTo(this.map as Map);
-      }
-    },
-    updateHash() {
-      if (window.location.hash.includes("extreme-events")) {
-        this.activateExtremeEvents();
-      }
-    },
-    
-    updateURL() {
-      if (this.map) {
-        const center = this.map.getCenter();
-        let state = null;
-        if (this.showExtendedRangeFeatures) {
-          state = {
-            lat: `${center.lat.toFixed(4)}`,
-            lon: `${center.lng.toFixed(4)}`,
-            zoom: `${this.map.getZoom()}`,
-            t: `${this.timestamp}`,
-            // extendedRange: `${this.showExtendedRange}`
-          };
-        } else {
-          state = {
-            lat: `${center.lat.toFixed(4)}`,
-            lon: `${center.lng.toFixed(4)}`,
-            zoom: `${this.map.getZoom()}`,
-            t: `${this.timestamp}`
-          };
-        }
-        const url = new URL(location.origin);
-        url.pathname = location.pathname;
-        window.history.replaceState(null,'',url);
-        const searchParams = new URLSearchParams(state);
-        // const hash = window.location.hash;
-        // url.hash = hash;
-        url.search = searchParams.toString();
-        this.currentUrl = url.toString();
-
-      }
-    },
-    
-    cividis(x: number): string {
-      return cividis(x);
-    },
-    
-    svs(x: number): string {
-      return svs(x);
-    },
-    
-    cbarNO2(x: number): string {
-      const rgb = cbarNO2(0, 1, x);
-      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
-    },
-    
-    cbarNO2ColorsRevised2023(x: number): string {
-      const rgb = cbarNO2ColorsRevised2023(0, 1, x);
-      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
-    },
-    
-    blurActiveElement() {
-      const active = document.activeElement;
-      if (active instanceof HTMLElement) {
-        active.blur();
-      }
-    },
-
-    closeSplashScreen() {
-      this.showSplashScreen = false; 
-    },
-    
-    selectSheet(name: SheetType) {
-      if (this.sheet === name) {
-        this.sheet = null;
-        this.$nextTick(() => {
-          this.blurActiveElement();
-        });
-      } else {
-        this.sheet = name;
-      }
-    },
-    addCoastlines() {
-      fetch("coastlines.geojson")
-        .then(response => response.json())
-        .then(data => {
-          L.geoJson(data, {
-            style: { color: "black", weight: 1, opacity: 0.8 }
-          }).addTo(this.map as Map);
-        });
-    },
-    async geocodingInfoForSearch(searchText: string): Promise<MapBoxFeatureCollection | null> {
-      return geocodingInfoForSearch(searchText, {
-        countries: ["US", "CA", "MX", "CU", "BM", "HT", "DO"],
-        limit: 10,
-      }).catch(_err => null);
-    },
-    resetMapBounds() {
-      this.map?.setView([40.044, -98.789], 4);
-    },
-    play() {
-      this.playInterval = setInterval(() => {
-        if (this.timeIndex >= this.maxIndex) {
-          if (this.playInterval) {
-            // clearInterval(this.playInterval);
-            // this.playInterval = null;
-            // let it loop
-            this.timeIndex = this.minIndex;
-          }
-        } else {
-          this.timeIndex += 1;
-        }
-      }, 1000);
-    },
-    pause() {
-      if (this.playInterval) {
-        clearInterval(this.playInterval);
-      }
-    },
-    updateBounds() {
-      this.imageOverlay.setBounds(this.imageBounds);
-      this.cloudOverlay.setBounds(this.imageBounds);
-    },
-    
-    // preloadImages(images: string[]) {
-    //   const promises = images.map(src => loadImage(src));
-    //   return promises;
-    // },
-    
-    async updateTimestamps() {
-      getExtendedRangeTimestamps().then(ts => {
-        this.extendedRangeTimestamps = ts;
-      }
-      );
-      return getTimestamps().then((ts) => {
-        this.erdTimestamps = ts.early_release;
-        this.newTimestamps = ts.released;
-        this.timestamps = this.timestamps.concat(this.erdTimestamps, this.newTimestamps).sort();
-        this.cloudTimestamps = ts.clouds;
-      });
-    },
-    
-    getCloudFilename(date: Date): string {
-      const filename = this.getTempoFilename(date);
-      if (this.useHighRes) {
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/' + filename;
-      } else {
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/resized_images/' + filename;
-      }
-    },
-    
-    getTempoFilename(date: Date): string {
-      return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth()+1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
-    },
-    
-    getTempoDataUrl(timestamp: number): string {
-      if (this.showExtendedRange && this.extendedRangeTimestamps.includes(timestamp)) {
-        console.log('extended range');
-        // return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/';
-        if (this.useHighRes) {
-          return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/';
-        }
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/resized_images/';
-      }
-      if (this.fosterTimestamps.includes(timestamp)) {
-        return 'https://tempo-images-bucket.s3.amazonaws.com/tempo-lite/';
-      }
-      
-      if (this.erdTimestamps.includes(timestamp)) {
-        return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/early_release/images/';
-      }
-      
-      if (this.newTimestamps.includes(timestamp)) {
-        if (this.useHighRes) {
-          return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/';
-        }
-        return "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/resized_images/";
-      }
-      
-      return '';
-    }, 
-    
-    nearestDate(date: Date): number {
-      const onedayinms = 1000 * 60 * 60 * 24;
-      const time = date.getTime();
-      const timestamp = this.timestamps.find(ts => ((ts - time) < onedayinms) && (ts - time) >= 0);
-      if (timestamp !== undefined) {
-        return timestamp;
-      } else {
-        // Return a default value or handle the error appropriately
-        console.warn("No matching timestamp found, returning default value.");
-        return this.timestamps[0]; // Default to the first timestamp
-      }
-    },
-
-    nearestDateIndex(date: Date): number {
-      const onedayinms = 1000 * 60 * 60 * 24;
-      const timestamp = date.getTime();
-      const index = this.timestamps.findIndex(ts => ((ts - timestamp) < onedayinms) && (ts - timestamp) >= 0);
-      if (index === null) {
-        console.log("No matching timestamp found, returning default index.");
-      }
-      return index ?? 0;
-    },
-    
-    setNearestDate(date: number | null) {
-      if (date == null) {
-        return;
-      }
-      const onedayinms = 1000 * 60 * 60 * 24;
-      const mod = this.timestamps.filter(ts => ((ts - date) < onedayinms) && (ts - date) > 0);
-      // set minIndex and maxIndex to the first and last index of the mod array
-      this.minIndex = this.timestamps.indexOf(mod[0]);
-      this.maxIndex = this.timestamps.indexOf(mod[mod.length - 1]);
-      if (this.timeIndex < this.minIndex || this.timeIndex > this.maxIndex) {
-        this.timeIndex = this.minIndex;
-      }
-      this.imagePreload();
-    },
-    
-    updateFieldOfRegard() {
-      if (this.date.getUTCFullYear() === 2023 && this.date.getUTCMonth() === 7) {
-        (this.fieldOfRegardLayer as L.GeoJSON).clearLayers();
-        (this.fieldOfRegardLayer as L.GeoJSON).addData(augustFieldOfRegard as GeoJSON.GeometryCollection);
-      } else {
-        (this.fieldOfRegardLayer as L.GeoJSON).clearLayers();
-        (this.fieldOfRegardLayer as L.GeoJSON).addData(fieldOfRegard as GeoJSON.GeometryCollection);
-      }
-    },
-    
-    imagePreload() {
-      if (!this.preload) {
-        return;
-      }
-      // console.log('preloading images for ', this.thumbLabel);
-      const times = this.timestamps.slice(this.minIndex, this.maxIndex + 1);
-      const images = times.map(ts => this.getTempoDataUrl(ts) + this.getTempoFilename(new Date(ts)));
-      const cloudImages = times.filter(ts => this.cloudTimestamps.includes(ts)).map(ts => this.getCloudFilename(new Date(ts)));
-      images.push(...cloudImages);
-      const promises = _preloadImages(images);
-      let loaded = 0;
-      this.loadedImagesProgress = 0;
-      promises.forEach((promise) => {
-        promise.then(() => {
-          loaded += 1;
-          this.loadedImagesProgress = (loaded / promises.length) * 100;
-        }).catch((err) => {
-          console.error('error loading image', err);
-        });
-      });
-    },
-
-    getUniqueDayIndex(date: Date): number {
-      return this.uniqueDays.findIndex(day => day.getTime() === date.getTime());
-    },
-
-    moveBackwardOneDay() {
-      this.radio=null;
-      this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) - 1];
-    },
-
-    moveForwardOneDay() {
-      this.radio=null;
-      this.singleDateSelected = this.uniqueDays[this.getUniqueDayIndex(this.singleDateSelected) + 1];
-    },
-    
-    uniqueDaysIndex(ts: number) {
-      const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
-      let date = new Date(ts + offset(new Date(ts)));
-      date = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-      return this.uniqueDays.map(e => e.getTime()).indexOf(date.getTime());
-    },
-    
-    goToLocationOfInterst(index: number, subindex: number) {
-      if (index < 0 || index >= this.locationsOfInterest.length) {
-        console.warn('Invalid index for location of interest');
-        return;
-      }
-      const loi = this.locationsOfInterest[index][subindex];
-      this.map?.setView(loi.latlng, loi.zoom);
-      if (loi.index !== undefined) {
-        this.timeIndex = loi.index;
-      } else {
-        console.warn('No index found for location of interest');
-      }
-    },
-    
-    goToLA() {
-      this.showLADialog = false;
-      const event = this.interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8-31, 2025)');
-      console.log('gotola', event);
-      if (event !== undefined && this.map ) {
-        const loi = event[0].locations;
-        this.map.setView(loi[0].latlng, loi[0].zoom);
-      }
-    },
-    
-    activateLAViewer() {
-      this.showLADialog = true;
-    },
-    
-    activateExtremeEvents() {
-      // Find the LA Wildfires event
-      const laWildfireIndex = this.interestingEvents.findIndex(
-        event => event.label?.includes("LA Wildfires")
-      );
-      
-      if (laWildfireIndex !== -1) {
-        // Set the radio to select this event
-        this.radio = laWildfireIndex;
-        // Make sure extended range is on
-        this.showExtendedRange = true;
-      }
-    },
-    
-  },
-
-  watch: {
-    timestampsLoaded(loaded: boolean) {
-      // this.$nextTick(() => {
-      if (loaded) {
-        console.log('timestamps loaded');
-        if (this.initState.t) {
-          let index = this.uniqueDaysIndex(this.initState.t);
-          if (index == -1) {
-            return;
-          }
-          console.log('set the date');
-          this.singleDateSelected = this.uniqueDays[index];
-          index = this.nearestDateIndex(new Date(this.initState.t));
-          if (index == -1 ) {
-            return;
-          }
-          this.timeIndex = index;
-          // FIXME if needed. if we find the time is not being set, use nextTick
-          // this.$nextTick(() => { this.timeIndex = index;});
-        } 
-      }
-    },
-    
-    timestamp(_val: number) {
-      this.updateURL();
-    },
-
-    introSlide(val: number) {
-      this.inIntro = val < 5;
-      return;
-    },
-    
-    dontShowIntro(val: boolean) {
-      window.localStorage.setItem("dontShowIntro", val.toString());
-      if (!val) {
-        this.inIntro = true;
-      }
-    },
-    
-    loadedImagesProgress(val: number) {
-      this.playing = false;
-      const btn = this.$el.querySelector('#play-pause-button');
-      if (btn) {
-        if (val < 100) {
-          btn.setAttribute('disabled', 'true');
-        } else {
-          btn.removeAttribute('disabled');
-        }
-        
-      }
-    },
-
-    playing(play: boolean) {
-      if (play) {
-        this.play();
-      } else {
-        this.pause();
-      }
-    },
-    imageUrl(url: string) {
-      this.updateBounds();
-      this.imageOverlay.setUrl(url);
-      this.updateFieldOfRegard();
-    },
-    
-    cloudUrl(url: string) {
-      this.cloudOverlay.setUrl(url);
-    },
-    
-    useHighRes() {
-      this.imagePreload();
-    },
-    
-    
-    imageBounds(bounds: L.LatLngBounds) {
-      console.log('image bounds change to', this.whichDataSet, bounds.toBBoxString());
-    },
-    
-    showFieldOfRegard (show: boolean) {
-      if (show) {
-        this.fieldOfRegardLayer.addTo(this.map as Map);
-      } else if (this.map) {
-        this.map.removeLayer(this.fieldOfRegardLayer as L.Layer);
-      }
-    },
-    
-    showLocationMarker(show: boolean) {
-      if (this.locationMarker) {
-        if (show) {
-          this.locationMarker.addTo(this.map as Map);
-          return;
-        } else {
-          this.locationMarker.remove();
-          return;
-        }
-      }
-    },
-    
-    timestamps() {
-      this.singleDateSelected = this.uniqueDays[this.uniqueDays.length-1];
-    },
-    
-    radio(value: number | null) {
-      if (value == null) {
-        // this.minIndex = 0;
-        // this.maxIndex = this.timestamps.length - 1;
-        this.setNearestDate(this.singleDateSelected.getTime());
-        this.sublocationRadio = null;
-        return;
-      }
-      const date = this.datesOfInterest[value] ?? this.singleDateSelected;
-      this.singleDateSelected = date;
-      this.setNearestDate(date.getTime());
-      if (this.sublocationRadio == 0 && value) {
-        // run this manually as the watcher wouldn't trigger
-        this.goToLocationOfInterst(value, 0);
-      } else {
-        this.sublocationRadio = 0;
-      }
-    },
-    
-    singleDateSelected(value: Date) {
-      // console.log(`singleDateSelected ${value}`);
-      const timestamp = value.getTime();
-      this.setNearestDate(timestamp);
-      if (this.radio !== null) {
-        const index = this.datesOfInterest.map(d => d.getTime()).indexOf(timestamp);
-        this.radio = index < 0 ? null : index;
-      }
-    },
-    
-    sublocationRadio(value: number | null) {
-      if (value !== null && this.radio != null) {
-        this.goToLocationOfInterst(this.radio, value);
-      }
-    },
-
-    opacity(value: number) {
-      this.imageOverlay.setOpacity(value);
-      this.cloudOverlay.setOpacity(value);
-    },
-    
-    showChanges(_value: boolean) {
-      if (this.showNotice) {
-        this.showNotice = false;
-      }
-    },
-    
-    showExtendedRange(_value: boolean) {
-      this.updateURL();
-      this.imagePreload();
+const fieldOfRegardLayer = L.geoJSON(
+  fieldOfRegard as GeoJSON.GeometryCollection,
+  {
+    style: {
+      color: "#c10124",
+      fillColor: "transparent",
+      weight: 1,
+      opacity: 0.8,
     },
   }
+) as L.Layer;
+
+
+const selectedTimezone = ref("US/Eastern");
+const playing = ref(false);
+const playInterval = ref<Timeout | null>(null);
+const searchOpen = ref(true);
+const searchErrorMessage = ref<string | null>(null);
+const showControls = ref(false);
+const showFieldOfRegard = ref(true);
+const showCredits = ref(false);
+const showUserGuide = ref(false);
+const showAboutData = ref(false);
+const loadedImagesProgress = ref(0);
+
+const showLocationMarker = ref(true);
+const locationMarker = ref<L.Marker | null>(null);
+const currentUrl = ref(window.location.href);
+const showChanges = ref(false);
+const showLADialog = ref(false);
+
+
+const imageName = computed(() => {
+  return getTempoFilename(date.value);
+});
+
+const imageUrl = computed(() => {
+  if (customImageUrl.value) {
+    return customImageUrl.value;
+  }
+  const url = getTempoDataUrl(timestamp.value);
+  if (url === null) { return ''; }
+  return url + imageName.value;
+});
+
+const showClouds = ref(false);
+const cloudUrl = computed(() => {
+  if (!showClouds.value) {
+    return '';
+  }
+
+  if (cloudTimestampsSet.value.has(timestamp.value)) {
+    return getCloudFilename(date.value);
+  }
+  return '';
+});
+
+
+const opacity = ref(0.9);
+const preload = ref(true);
+const customImageUrl = ref("");
+const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds);
+const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds);
+
+const cloudDataAvailable = computed(() => {
+  return cloudTimestampsSet.value.has(timestamp.value);
+});
+
+const whichDataSet = computed(() => {
+  if (fosterTimestampsSet.value.has(timestamp.value)) {
+    return 'TEMPO-lite';
+  }
+
+  if (erdTimestampsSet.value.has(timestamp.value)) {
+    return 'Early Release (V01)';
+  }
+
+  if (newTimestampsSet.value.has(timestamp.value)) {
+    return 'Level 3 (V03)';
+  }
+
+  return 'Unknown';
+});
+
+
+const highresAvailable = computed(() => {
+  return newTimestampsSet.value.has(timestamp.value);
+});
+
+const extendedRangeAvailable = computed(() => {
+  return extendedRangeTimestampsSet.value.has(timestamp.value);
+});
+
+const showingExtendedRange = computed(() => {
+  return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
+});
+
+const onMapReady = (map: Map) => {
+  map.on('moveend', updateURL);
+  map.on('zoomend', updateURL);
+};
+const { map, setView } = useLeafletMap("map", initState.value, onMapReady);
+
+onMounted(() => {
+  window.addEventListener("hashchange", updateHash);
+  showSplashScreen.value = false;
+
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const zoomHome = L.Control.zoomHome({ homeCoordinates: homeState.value.loc, homeZoom: homeState.value.zoom });
+  const originalZH = zoomHome._zoomHome.bind(zoomHome);
+  zoomHome._zoomHome = (_e: Event) => {
+    originalZH();
+    sublocationRadio.value = null;
+    // check if location marker is not null and on map. if so remove it
+    if (locationMarker.value !== null) {
+      locationMarker.value.remove();
+    }
+  };
+  zoomHome.addTo(map.value);
+
+  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
+  imageOverlay.addTo(map.value as Map);
+  cloudOverlay.addTo(map.value as Map);
+
+  updateFieldOfRegard();
+  if (showFieldOfRegard.value) {
+    fieldOfRegardLayer.addTo(map.value as Map);
+  }
+
+  createUserEntry();
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      updateUserData();
+    } else {
+      resetData();
+    }
+  });
+  
+});
+
+onBeforeUnmount(() => {
+  // cleanup event handlers
+  if (map.value) {
+    map.value.off('movend');
+    map.value.off('zoomend');
+  }
+});
+
+
+const datesOfInterest = computed(() => {
+  return interestingEvents.map(event => event.date);
+});
+
+const dateStrings = computed(() => {
+  return interestingEvents.map(event => event.dateString);
+});
+
+const locationsOfInterest = computed(() => {
+  return interestingEvents.map(event =>
+    event.locations.map(loc => ({
+      ...loc,
+      index: nearestDateIndex(new Date(loc.time)),
+    }))
+  );
+});
+
+const locationsOfInterestText = computed(() => {
+  return interestingEvents.map(event =>
+    event.locations.map(loc => loc.description)
+  );
+});
+
+const dateIsDST = computed(() => {
+  const standardOffset = getTimezoneOffset(selectedTimezone.value, new Date(date.value.getUTCFullYear(), 0, 1));
+  const currentOffset = getTimezoneOffset(selectedTimezone.value, date.value);
+  if (standardOffset === currentOffset) {
+    return false;
+  }
+  return true;
+});
+
+const timezoneOptions = computed(() => {
+  return [
+    { tz: 'US/Eastern', name: dateIsDST.value ? 'Eastern Daylight' : 'Eastern Standard' },
+    { tz: 'US/Central', name: dateIsDST.value ? 'Central Daylight' : 'Central Standard' },
+    { tz: 'US/Mountain', name: dateIsDST.value ? 'Mountain Daylight' : 'Mountain Standard' },
+    { tz: 'US/Arizona', name: 'Mountain Standard' },
+    { tz: 'US/Pacific', name: dateIsDST.value ? 'Pacific Daylight' : 'Pacific Standard' },
+    { tz: 'US/Alaska', name: dateIsDST.value ? 'Alaska Daylight' : 'Alaska Standard' },
+    { tz: 'UTC', name: 'UTC' },
+  ];
+});
+
+// TODO: Maybe there's a built-in Date function to get this formatting?
+const thumbLabel = computed(() => {
+  const offset = getTimezoneOffset(selectedTimezone.value, date.value);
+  const dateObj = new Date(timestamp.value + offset);
+  const hours = dateObj.getUTCHours();
+  const amPm = hours >= 12 ? "PM" : "AM";
+  let hourValue = hours % 12;
+  if (hourValue === 0) {
+    hourValue = 12;
+  }
+  return `${date.value.getUTCMonth() + 1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
+});
+
+
+function setMarker(latlng: L.LatLngExpression) {
+  console.log(L.Icon.Default.prototype.options);
+  const icon = L.icon({
+    ...L.Icon.Default.prototype.options,
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  });
+  if (locationMarker.value == null) {
+    locationMarker.value = new L.Marker(latlng, { icon: icon, pane: 'labels', opacity: 0.8 });
+  } else {
+    locationMarker.value.setLatLng(latlng);
+  }
+  if (showLocationMarker.value) {
+    locationMarker.value.addTo(map.value as Map);
+  }
+}
+
+
+function updateHash() {
+  if (window.location.hash.includes("extreme-events")) {
+    activateExtremeEvents();
+  }
+}
+
+
+function updateURL() {
+  if (map.value) {
+    const center = map.value.getCenter();
+    let stateObj = null as Record<string, string> | null;
+    if (showExtendedRangeFeatures) {
+      stateObj = {
+        lat: `${center.lat.toFixed(4)}`,
+        lon: `${center.lng.toFixed(4)}`,
+        zoom: `${map.value.getZoom()}`,
+        t: `${timestamp.value}`,
+        extendedRange: `${showExtendedRange.value}`
+      };
+    } else {
+      stateObj = {
+        lat: `${center.lat.toFixed(4)}`,
+        lon: `${center.lng.toFixed(4)}`,
+        zoom: `${map.value.getZoom()}`,
+        t: `${timestamp.value}`
+      };
+    }
+    const url = new URL(location.origin);
+    const searchParams = new URLSearchParams(stateObj ?? {});
+    // const hash = window.location.hash;
+    // url.hash = hash;
+    url.pathname = location.pathname;
+    window.history.replaceState(null, '', url.toString());
+    url.search = searchParams.toString();
+    currentUrl.value = url.toString();
+    window.history.replaceState(stateObj, '', url);
+  }
+}
+
+function cmapNO2(x: number): string {
+  const rgb = cbarNO2(0, 1, x);
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
+}
+
+async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
+  return geocodingInfoForSearch(searchText, {
+    countries: ["US", "CA", "MX", "CU", "BM", "HT", "DO"],
+    limit: 10,
+  }).catch(_err => null);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function resetMapBounds() {
+  setView([40.044, -98.789], 4);
+}
+
+function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
+  const [feature, text] = items;
+  if (feature !== null) {
+    const coordinates: [number, number] = [feature.center[1], feature.center[0]];
+    map.value?.setView(coordinates, 12);
+    setMarker(coordinates);
+    userSelectedLocations.push(text);
+  }
+}
+
+function play() {
+  playInterval.value = setInterval(() => {
+    if (timeIndex.value >= maxIndex.value) {
+      if (playInterval.value) {
+        // clearInterval(this.playInterval);
+        // this.playInterval = null;
+        // let it loop
+        timeIndex.value = minIndex.value;
+      }
+    } else {
+      timeIndex.value += 1;
+    }
+  }, 1000);
+}
+
+
+function pause() {
+  if (playInterval.value) {
+    clearInterval(playInterval.value);
+  }
+}
+
+
+function getCloudFilename(date: Date): string {
+  const filename = getTempoFilename(date);
+  if (useHighRes.value) {
+    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/' + filename;
+  } else {
+    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/resized_images/' + filename;
+  }
+}
+
+
+function getTempoFilename(date: Date): string {
+  return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth() + 1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
+}
+
+
+function getTempoDataUrl(timestamp: number): string {
+  if (showExtendedRange.value && extendedRangeTimestampsSet.value.has(timestamp)) {
+    if (useHighRes.value) {
+      return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/';
+    }
+    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/resized_images/';
+  }
+  if (fosterTimestampsSet.value.has(timestamp)) {
+    return 'https://tempo-images-bucket.s3.amazonaws.com/tempo-lite/';
+  }
+
+  if (erdTimestampsSet.value.has(timestamp)) {
+    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/early_release/images/';
+  }
+
+  if (newTimestampsSet.value.has(timestamp)) {
+    if (useHighRes.value) {
+      return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/';
+    }
+    return "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/resized_images/";
+  }
+
+  return '';
+}
+
+
+function updateFieldOfRegard() {
+  if (date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
+    (fieldOfRegardLayer as L.GeoJSON).clearLayers();
+    (fieldOfRegardLayer as L.GeoJSON).addData(augustFieldOfRegard as GeoJSON.GeometryCollection);
+  } else {
+    (fieldOfRegardLayer as L.GeoJSON).clearLayers();
+    (fieldOfRegardLayer as L.GeoJSON).addData(fieldOfRegard as GeoJSON.GeometryCollection);
+  }
+}
+
+
+function imagePreload() {
+  if (!preload.value) {
+    return;
+  }
+  // console.log('preloading images for ', this.thumbLabel);
+  const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1);
+  const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
+  const cloudImages = times.filter(ts => cloudTimestampsSet.value.has(ts)).map(ts => getCloudFilename(new Date(ts)));
+  images.push(...cloudImages);
+  const promises = _preloadImages(images);
+  let loaded = 0;
+  loadedImagesProgress.value = 0;
+  promises.forEach((promise) => {
+    promise.then(() => {
+      loaded += 1;
+      loadedImagesProgress.value = (loaded / promises.length) * 100;
+    }).catch((err) => {
+      console.error('error loading image', err);
+    });
+  });
+}
+
+
+function goToLocationOfInterst(index: number, subindex: number) {
+  if (index < 0 || index >= locationsOfInterest.value.length) {
+    console.warn('Invalid index for location of interest');
+    return;
+  }
+  const loi = locationsOfInterest.value[index][subindex];
+  map.value?.setView(loi.latlng, loi.zoom);
+  if (loi.index !== undefined) {
+    timeIndex.value = loi.index;
+  } else {
+    console.warn('No index found for location of interest');
+  }
+}
+
+
+function goToLA() {
+  showLADialog.value = false;
+  const event = interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
+  if (event !== undefined && map.value) {
+    const loi = event[0].locations;
+    map.value.setView(loi[0].latlng, loi[0].zoom);
+  }
+}
+
+
+function activateLAViewer() {
+  showLADialog.value = true;
+}
+
+
+function activateExtremeEvents() {
+  // Find the LA Wildfires event
+  const laWildfireIndex = interestingEvents.findIndex(
+    event => event.label?.includes("LA Wildfires")
+  );
+
+  if (laWildfireIndex !== -1) {
+    // Set the radio to select this event
+    radio.value = laWildfireIndex;
+    // Make sure extended range is on
+    showExtendedRange.value = true;
+  }
+}
+
+function onTimeSliderEnd(_value: number) {
+  timeSliderUsedCount += 1; 
+}
+
+function onOpacitySliderEnd(_value: number) {
+  opacitySliderUsedCount += 1;
+}
+
+async function createUserEntry() {
+  if (responseOptOut.value) {
+    return;
+  }
+
+  const response = await fetch(`${STORY_DATA_URL}/${uuid}`, {
+    method: "GET",
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    headers: { "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "" }
+  });
+  const content = await response.json();
+  const exists = response.status === 200 && content.response?.user_uuid != undefined;
+  if (exists) {
+    return;
+  }
+
+  fetch(`${STORY_DATA_URL}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+    },
+    body: JSON.stringify({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_uuid: uuid,
+    }),
+  });
+}
+
+function resetData() {
+  whatsNewOpenedCount = 0;
+  introductionOpenedCount = 0;
+  userGuideOpenedCount = 0;
+  aboutDataOpenedCount = 0;
+  creditsOpenedCount = 0;
+  shareButtonClickedCount = 0;
+  playButtonClickedCount = 0;
+  timeSliderUsedCount = 0;
+  opacitySliderUsedCount = 0;
+  userSelectedCalendarDates = [];
+  userSelectedTimezones = [];
+  userSelectedLocations = [];
+  userSelectedNotableEvents = [];
+
+  aboutDataOpenTimeMs = 0;
+  userGuideOpenTimeMs = 0;
+  introductionOpenTimeMs = 0;
+  whatsNewOpenTimeMs = 0;
+  creditsOpenTimeMs = 0;
+  fieldOfRegardToggled = false;
+  cloudMaskToggled = false;
+  hiResDataToggled = false;
+
+  const now = Date.now();
+  creditsTimestamp = showCredits.value ? now : null;
+  aboutDataTimestamp = showAboutData.value ? now : null;
+}
+
+async function updateUserData() {
+  if (responseOptOut.value) {
+    return;
+  }
+
+  const now = Date.now();
+  const creditsTime = (showCredits.value && creditsTimestamp !== null) ? now - creditsTimestamp : creditsOpenTimeMs;
+  const aboutDataTime = (showAboutData.value && aboutDataTimestamp !== null) ? now - aboutDataTimestamp: aboutDataOpenTimeMs;
+  const whatsNewTime = (showChanges.value && whatsNewTimestamp !== null) ? now  - whatsNewTimestamp : whatsNewOpenTimeMs;
+  const introductionTime = (introductionOpen.value && introductionTimestamp !== null) ? now - introductionTimestamp : introductionOpenTimeMs;
+  const userGuideTime = (userGuideOpen.value && userGuideTimestamp !== null) ? now - userGuideTimestamp : userGuideOpenTimeMs;
+
+  fetch(`${STORY_DATA_URL}/${uuid}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+    },
+    body: JSON.stringify({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_whats_new_opened_count: whatsNewOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_whats_new_open_time_ms: whatsNewTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_introduction_opened_count: introductionOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_introduction_open_time_ms: introductionTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_user_guide_opened_count: userGuideOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_user_guide_open_time_ms: userGuideTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_about_data_opened_count: aboutDataOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_about_data_open_time_ms: aboutDataTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_credits_opened_count: creditsOpenedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_credits_open_time_ms: creditsTime,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_share_button_clicked_count: shareButtonClickedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_calendar_dates: userSelectedCalendarDates,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_timezones: userSelectedTimezones,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_locations: userSelectedLocations,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      user_selected_notable_events: userSelectedNotableEvents,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_play_clicked_count: playButtonClickedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_time_slider_used_count: timeSliderUsedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      delta_opacity_slider_used_count: opacitySliderUsedCount,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      field_of_regard_toggled: fieldOfRegardToggled,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      cloud_mask_toggled: cloudMaskToggled,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      high_res_data_toggled: hiResDataToggled,
+    }),
+    keepalive: true,
+  }).then(() => {
+    resetData();
+  });
+}
+
+watch(timestampsLoaded, (loaded: boolean) => {
+  if (loaded) {
+    console.log('timestamps loaded');
+    if (initState.value.t) {
+      let index = uniqueDaysIndex(initState.value.t);
+      if (index == -1) {
+        return;
+      }
+      console.log('set the date');
+      singleDateSelected.value = uniqueDays.value[index];
+      index = nearestDateIndex(new Date(initState.value.t));
+      if (index == -1) {
+        return;
+      }
+      timeIndex.value = index;
+      // FIXME if needed. if we find the time is not being set, use nextTick
+      // this.$nextTick(() => { this.timeIndex = index;});
+    }
+  }
+});
+
+watch(timestamp, (_val: number) => {
+  updateURL();
+});
+
+watch(introSlide, (val: number) => {
+  inIntro.value = val < 5;
+});
+
+watch(dontShowIntro, (val: boolean) => {
+  window.localStorage.setItem("dontShowIntro", val.toString());
+  if (!val) {
+    inIntro.value = true;
+  }
+});
+
+watch(inIntro, (value: boolean) => {
+  if (!value) {
+    if (responseOptOut.value === null && !hasOptOutBeenOpened) {
+      showPrivacyDialog.value = true;
+    }
+  }
+});
+
+watch(showPrivacyDialog, (show: boolean) => {
+  if (show) {
+    hasOptOutBeenOpened = true;
+  }
+});
+
+watch(responseOptOut, (optOut: boolean | null) => {
+  if (responseOptOut.value !== null) {
+    window.localStorage.setItem(OPT_OUT_KEY, String(optOut));
+  }
+});
+
+watch(loadedImagesProgress, (val: number) => {
+  playing.value = false;
+  const btn = document.querySelector('#play-pause-button');
+  if (btn) {
+    if (val < 100) {
+      btn.setAttribute('disabled', 'true');
+    } else {
+      btn.removeAttribute('disabled');
+    }
+  }
+});
+
+watch(playing, (val: boolean) => {
+  if (val) {
+    play();
+    playButtonClickedCount += 1;
+  } else {
+    pause();
+  }
+});
+
+watch(imageUrl, (_url: string) => {
+  updateFieldOfRegard();
+});
+
+// watch(cloudUrl, (_url: string) => {
+//   // nothing to do here.
+// });
+
+watch(useHighRes, () => {
+  hiResDataToggled = true;
+  imagePreload();
+});
+
+watch(imageBounds, (bounds: L.LatLngBounds) => {
+  console.log('image bounds change to', whichDataSet.value, bounds.toBBoxString());
+});
+
+watch(showFieldOfRegard, (show: boolean) => {
+  fieldOfRegardToggled = true;
+  if (show) {
+    fieldOfRegardLayer.addTo(map.value as Map);
+  } else if (map.value) {
+    map.value.removeLayer(fieldOfRegardLayer as L.Layer);
+  }
+});
+
+watch(showClouds, (_show: boolean) => {
+  cloudMaskToggled = true;
+});
+
+watch(showLocationMarker, (show: boolean) => {
+  if (locationMarker.value) {
+    if (show) {
+      locationMarker.value.addTo(map.value as Map);
+      return;
+    } else {
+      locationMarker.value.remove();
+      return;
+    }
+  }
+});
+
+watch(timestamps, () => {
+  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
+});
+
+watch(radio, (value: number | null) => {
+  if (value == null) {
+    setNearestDate(singleDateSelected.value.getTime());
+    sublocationRadio.value = null;
+    return;
+  }
+  const date = datesOfInterest.value[value] ?? singleDateSelected.value;
+  singleDateSelected.value = date;
+  setNearestDate(date.getTime());
+  if (sublocationRadio.value == 0 && value) {
+    // run this manually as the watcher wouldn't trigger
+    goToLocationOfInterst(value, 0);
+  } else {
+    sublocationRadio.value = 0;
+  }
+});
+
+watch(singleDateSelected, (value: Date) => {
+  // console.log(`singleDateSelected ${value}`);
+  const timestamp = value.getTime();
+  setNearestDate(timestamp);
+  if (radio.value !== null) {
+    const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
+    radio.value = index < 0 ? null : index;
+  }
+  imagePreload();
+});
+
+watch(sublocationRadio, (value: number | null) => {
+  if (value !== null && radio.value != null) {
+    goToLocationOfInterst(radio.value, value);
+  }
+});
+
+
+watch(showChanges, (_value: boolean) => {
+  if (showNotice.value) {
+    showNotice.value = false;
+  }
+});
+
+watch(showExtendedRange, (_value: boolean) => {
+  updateURL();
+  imagePreload();
+});
+
+watch(showChanges, (show: boolean) => {
+  const now = Date.now();
+  if (show) {
+    whatsNewTimestamp = now;
+    whatsNewOpenedCount += 1;
+  } else if (whatsNewTimestamp !== null) {
+    whatsNewOpenTimeMs += (now - whatsNewTimestamp);
+    whatsNewTimestamp = null;
+  }
+});
+
+watch(showAboutData, (show: boolean) => {
+  const now = Date.now();
+  if (show) {
+    aboutDataTimestamp = now;
+    aboutDataOpenedCount += 1;
+  } else if (aboutDataTimestamp !== null) {
+    aboutDataOpenTimeMs += (now - aboutDataTimestamp);
+    aboutDataTimestamp = null;
+  }
+});
+
+watch(showCredits, (show: boolean) => {
+  const now = Date.now();
+  if (show) {
+    creditsTimestamp = now;
+    creditsOpenedCount += 1;
+  } else if (creditsTimestamp !== null) {
+    creditsOpenTimeMs += (now - creditsTimestamp);
+    creditsTimestamp = null;
+  }
+});
+
+watch(introductionOpen, (open: boolean) => {
+  const now = Date.now();
+  if (open) {
+    introductionTimestamp = now;
+    introductionOpenedCount += 1;
+  } else if (introductionTimestamp !== null) {
+    introductionOpenTimeMs += (now - introductionTimestamp);
+    introductionTimestamp = null;
+  }
+});
+
+watch(userGuideOpen, (open: boolean) => {
+  const now = Date.now();
+  if (open) {
+    userGuideTimestamp = now;
+    userGuideOpenedCount += 1;
+  } else if (userGuideTimestamp !== null) {
+    userGuideOpenTimeMs += (now - userGuideTimestamp);
+    userGuideTimestamp = null;
+  }
+});
+
+const radioSubloc: ComputedRef<[number | null, number | null]> = computed(() => [radio.value, sublocationRadio.value]); 
+watch(radioSubloc, (item: [number | null, number | null]) => {
+  const radio = item[0];
+  const subRadio = item[1];
+  if (radio === null || subRadio === null) {
+    return [];
+  }
+  const eventText = interestingEvents[radio].label ?? "";
+  const subEventText = locationsOfInterest.value[radio][subRadio].text;
+  userSelectedNotableEvents.push([eventText, subEventText]);
+});
+
+watch(selectedTimezone, (timezone: string) => {
+  userSelectedTimezones.push(timezone);
+});
+
+watch(singleDateSelected, (date: Date) => {
+  if (!timestampsLoaded.value ) return;
+  userSelectedCalendarDates.push(date.getTime());
 });
 </script>
-
+  
 <style lang="less">
 @font-face {
   font-family: "Highway Gothic Narrow";
@@ -1928,19 +2045,19 @@ export default defineComponent({
   font-size: 16px; // this is the standard browser default
   --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem); // we don't use this
   --smithsonian-blue: #009ade;
-  --smithsonian-yellow: #ffcc33;  
+  --smithsonian-yellow: #ffcc33;
   --info-background: #092088;
   --map-height: 500px;
 }
 
 .dp__theme_dark {
   --dp-primary-text-color: #fff !important; // selected date text
-  --dp-primary-color: var(--accent-color)!important; // selected date background
+  --dp-primary-color: var(--accent-color) !important; // selected date background
 }
 
 .dp__month_year_select,
 .dp__calendar_item {
-  color: #97c8f1!important; // selectable date text & Month/Year
+  color: #97c8f1 !important; // selectable date text & Month/Year
   font-weight: 800 !important;
 }
 
@@ -1956,7 +2073,7 @@ html {
   background-color: #000;
   overflow: hidden;
 
-  
+
   -ms-overflow-style: none;
   // scrollbar-width: none;
 }
@@ -1987,17 +2104,17 @@ ul {
   left: 0;
   width: 100% !important;
   height: 100% !important;
-  background-color: rgba(0, 0, 0, 0.7); 
+  background-color: rgba(0, 0, 0, 0.7);
   z-index: 100;
 }
 
 .gradient-background {
-    // rotated translucent background gradient
-    background: linear-gradient(45deg,
-                              rgb(14, 30, 40), 
-                              rgb(22, 50, 65), 
-                              rgb(30 70 90));
-  }
+  // rotated translucent background gradient
+  background: linear-gradient(45deg,
+      rgb(14, 30, 40),
+      rgb(22, 50, 65),
+      rgb(30 70 90));
+}
 
 #introduction-overlay {
   position: absolute;
@@ -2024,24 +2141,23 @@ ul {
   }
 
 
-  
   //font-size: calc(1.1 * var(--default-font-size));
   // line-height: var(--default-line-height);
 
   .v-list-item {
     color: #eee;
   }
-  
+
   .intro-text {
     color: white;
     font-size: 1em;
     line-height: 1.5em;
   }
-  
+
   strong {
     color: white;
   }
-  
+
   div#intro-bottom-controls {
     display: flex;
     flex-direction: row;
@@ -2050,22 +2166,44 @@ ul {
     align-items: center;
 
     gap: 1em;
-    margin-top:0.5em;
+    margin-top: 0.5em;
 
     .v-btn.v-btn--density-default {
-        max-height: calc(1.6 * var(--default-line-height));
-      }  
+      max-height: calc(1.6 * var(--default-line-height));
+    }
 
     .v-btn--size-default {
       font-size: calc(0.9 * var(--default-font-size));
-    }    
-    
+    }
+
     #intro-next-button {
-      background-color: rgba(18, 18, 18,.5);
+      background-color: rgba(18, 18, 18, .5);
     }
   }
 }
 
+#privacy-popup-dialog {
+
+  .v-card-text {
+    color: #BDBDBD;
+  }
+
+  .v-overlay__content {
+    font-size: var(--default-font-size);
+    background-color: purple;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+
+  .v-btn--size-default {
+      font-size: calc(0.9 * var(--default-font-size));
+    }  
+
+  .v-card-actions .v-btn {
+    padding: 0 4px;
+  }
+}
 
 #splash-screen {
   color: #E0E0E0;
@@ -2081,6 +2219,7 @@ ul {
     margin-inline: auto;
     text-align: center;
   }
+
   // make a paragraph inside the div centered horizontally and vertically
   p {
     font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
@@ -2120,20 +2259,21 @@ ul {
 
   #splash-screen-logos {
     margin-block: 0.75em;
-    
+
     /* format for including more inline logos */
     display: flex; // place on same line
     justify-content: center; // align center
-    
-    > * {
+
+    >* {
       margin-inline: 0; // counteract margin-inline: auto from #splash-screen div
     }
+
     /* ************ */
 
     img {
-    height: 5vmin;
-    vertical-align: middle;
-    margin: 2px;
+      height: 5vmin;
+      vertical-align: middle;
+      margin: 2px;
     }
 
     @media only screen and (max-width: 600px) {
@@ -2150,13 +2290,13 @@ ul {
 }
 
 #intro-window-close-button {
-    position: absolute;
-    top: 0.25em;
-    right: 0.25em;
+  position: absolute;
+  top: 0.25em;
+  right: 0.25em;
 
-    &:hover {
-      cursor: pointer;
-    }
+  &:hover {
+    cursor: pointer;
+  }
 }
 
 #main-content {
@@ -2183,27 +2323,27 @@ ul {
 .content-with-sidebars {
   position: relative;
   padding: 0;
-  
+
   display: grid;
   grid-template-columns: 0 .8fr .3fr;
   grid-template-rows: 70px var(--map-height) 78px .5fr .5fr;
   gap: 20px 10px;
-  
-  > * {
+
+  >* {
     background-color: transparent;
   }
-  
-  > div {
+
+  >div {
     outline: 1px solid transparent;
   }
-  
+
   #user-options {
     min-width: 200px;
     margin-left: 1.5rem;
     grid-column: 3 / 4;
     grid-row: 2 / 3;
   }
-  
+
   #logo-title {
     display: flex;
     align-items: center;
@@ -2211,7 +2351,7 @@ ul {
     grid-row: 1 / 2;
     gap: 10px;
   }
-  
+
   #menu-area {
     // grid-column: 3 / 4;
     // grid-row: 1 / 2;
@@ -2227,18 +2367,18 @@ ul {
     grid-column: 1 / 2;
     grid-row: 2 / 3;
   }
-  
+
   #map-container {
     grid-column: 2 / 3;
     grid-row: 2 / 3;
   }
-  
+
   #when {
     display: none;
     grid-column: 1 / 2;
     grid-row: 3 / 4;
   }
-  
+
   #slider-row {
     grid-column: 2 / 3;
     grid-row: 3 / 4;
@@ -2274,9 +2414,9 @@ ul {
   flex-grow: 1;
 }
 
-a[href="https://tempo.si.edu"] > img {
+a[href="https://tempo.si.edu"]>img {
   // display: inline;
-  height: 70px!important;
+  height: 70px !important;
   width: auto !important;
 }
 
@@ -2294,16 +2434,12 @@ a {
 }
 
 
-
-
-
-
 // prevent overflows of the content
 #user-options {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 5px; 
+  gap: 5px;
 }
 
 #date-radio {
@@ -2345,13 +2481,15 @@ a {
   align-self: start;
 }
 
-#slider-row, #when {
+#slider-row,
+#when {
   margin-top: 1.5rem;
 }
 
 #slider-row {
   margin-left: 3rem;
 }
+
 #map-container {
   position: relative;
   display: flex;
@@ -2363,7 +2501,7 @@ a {
     flex-grow: 1;
     flex-shrink: 1;
   }
-  
+
   #location-and-sharing {
     position: absolute;
     bottom: 0;
@@ -2372,13 +2510,14 @@ a {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
-    width:fit-content;
+    width: fit-content;
   }
+
   .forward-geocoding-container {
     width: 250px;
     border: 2px solid black;
   }
-  
+
   #map-show-hide-controls {
     z-index: 1000;
     position: absolute;
@@ -2392,18 +2531,18 @@ a {
     right: 80px;
     width: fit-content;
     z-index: 1000;
-    
+
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    
+
     color: black;
     background-color: #fff5;
     padding-left: 0.5rem;
     padding-right: 0.25rem;
-    
+
     backdrop-filter: blur(5px);
-    
+
     hr.line-legend {
       display: inline-block;
       border: 0.5px solid #c10124;
@@ -2411,7 +2550,7 @@ a {
     }
   }
 
-   .colorbar-container {
+  .colorbar-container {
     flex-grow: 0;
     flex-shrink: 1;
 
@@ -2419,13 +2558,13 @@ a {
       font-size: .95em;
     }
   }
-  
+
   #la-fires {
     z-index: 1000;
     position: absolute;
-    right: 80px ;
+    right: 80px;
     bottom: 1rem;
-    
+
   }
 }
 
@@ -2433,8 +2572,8 @@ a {
   display: flex;
   flex-direction: row;
   padding-left: 0;
-  
-  > #play-pause-button {
+
+  >#play-pause-button {
     height: fit-content;
     align-self: center;
     padding-inline: 0.5rem;
@@ -2443,7 +2582,7 @@ a {
     color: var(--accent-color);
     border: 2px solid var(--accent-color);
   }
-  
+
   #play-pause-button[disabled] {
     filter: grayscale(100%);
     cursor: progress;
@@ -2459,20 +2598,20 @@ a {
 
   .v-slider-thumb {
 
-    .v-slider-thumb__surface::after {
-      background-image: url("./assets/smithsonian.png");
+  .v-slider-thumb__surface::after {
+    background-image: url("./assets/smithsonian.png");
       background-size: 30px 30px;
       height: 30px;
       width: 30px;
     }
-    
+
     .v-slider-thumb__label {
       background-color: var(--accent-color-2);
       border: 0.25rem solid var(--accent-color);
       width: max-content;
       height: 2.5rem;
       font-size: 1rem;
-    
+
       &::before {
         color: var(--accent-color);
       }
@@ -2480,30 +2619,32 @@ a {
   }
 
   .v-slider-track__tick {
-      background-color: var(--accent-color); /* Change color */
-      height: 15px; /* Change size */
-      width: 4px;
-      margin-top: 0 !important;
-      // top: -10%;
+    background-color: var(--accent-color);
+    /* Change color */
+    height: 15px;
+    /* Change size */
+    width: 4px;
+    margin-top: 0 !important;
+    // top: -10%;
   }
 
   .v-slider {
-  
+
     .v-slider.v-input--horizontal {
       grid-template-rows: auto 0px;
     }
-    
+
     .v-slider.v-input--horizontal .v-slider-thumb__label {
       // top: calc(var(--v-slider-thumb-size) * 1.5);
-      z-index:2000;
+      z-index: 2000;
     }
-    
+
     .v-slider.v-input--horizontal .v-slider-thumb__label::before {
-        border-left: 6px solid transparent;
-        border-right: 6px solid transparent;
-        border-bottom: 6px solid transparent;
-        border-top: 6px solid currentColor;
-        bottom: -15px;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-top: 6px solid currentColor;
+      bottom: -15px;
     }
   }
 }
@@ -2533,6 +2674,7 @@ a {
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
+
   img {
     height: 35px !important;
     vertical-align: middle;
@@ -2540,12 +2682,13 @@ a {
   }
 }
 
-#icons-container > a[href="https://worldwidetelescope.org/home/"] {
+#icons-container>a[href="https://worldwidetelescope.org/home/"] {
   display: none;
 }
 
 .v-selection-control {
-  // height: fit-content;
+  z-index: auto;
+
 }
 
 .v-radio-group .v-input__details {
@@ -2558,7 +2701,7 @@ a {
   }
 }
 
-.rounded-icon-wrapper{
+.rounded-icon-wrapper {
   height: fit-content;
   align-self: center;
   padding-inline: 0.5rem;
@@ -2593,40 +2736,40 @@ button:focus-visible,
 // ========= DEFINE MOBILE STYLES =========
 // KEEP THEM ALL HERE
 @media (max-width: 1180px) {
-  
+
   .content-with-sidebars {
     grid-template-columns: 0px auto auto;
     grid-template-rows: 3.5rem var(--map-height) 78px .5fr .5fr;
-    
+
     #when {
       display: none;
     }
-    
+
     #where {
       display: none;
     }
-    
+
     #title {
       text-wrap: wrap;
       font-size: 2rem;
       line-height: 1.25;
       margin-left: 10px;
     }
-    
+
     #slider-row {
       margin-left: 3rem;
     }
-    
-    a[href="https://tempo.si.edu"] > img {
-      height: 70px!important;
+
+    a[href="https://tempo.si.edu"]>img {
+      height: 70px !important;
       width: auto !important;
     }
-    
+
     #user-options {
       width: 250px;
     }
-  
-  
+
+
   }
 }
 
@@ -2637,152 +2780,152 @@ button:focus-visible,
     --map-height: 60svh;
     font-size: 14px;
   }
-  
+
   #main-content {
     padding: 1rem;
   }
-  
+
   #introduction-overlay .v-window {
     max-height: 75vh;
     max-height: 75dvh;
     max-height: 75sdvh;
     overflow-y: scroll;
   }
-  
+
   #introduction-overlay .intro-text {
     font-size: min(1.15em, 2vw);
   }
-  
+
   #introduction-overlay ul li {
     margin-block-start: 1.15em;
   }
+
   .content-with-sidebars {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto 78px repeat(5, auto);
     gap: 10px;
     // padding-inline: 1rem;
-    
-    
+
+
     #logo-title {
       min-width: 0;
       grid-column: 1 / 2;
       grid-row: 1 / 2;
     }
-    
+
     a[href="https://tempo.si.edu"]:has(img) {
       grid-column: 1 / 2;
       grid-row: 1 / 2;
     }
-    
+
     #menu-area {
-    grid-column: 1 / 2;
-    grid-row: 1 / 2;
-    display: flex;
-    flex-direction: column-reverse;
-    gap: 1rem;
-    align-items: flex-end;
-  }
-    
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
     #map-container {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
     }
-    
+
     #map-container #map-show-hide-controls {
       right: 5px
     }
-    
+
     #slider-row {
       grid-column: 1 / 2;
       grid-row: 3 / 4;
     }
-    
+
     #user-options {
       grid-column: 1 / 2;
       grid-row: 4 / 5;
     }
-    
-    
+
+
     #where {
       display: none;
     }
-    
-    
+
+
     #when {
       display: none;
     }
-    
-    
+
+
     #bottom-options {
       grid-column: 1 / 2;
       grid-row: 5 / 6;
     }
-    
+
     #information {
       grid-column: 1 / 2;
       grid-row: 6 / 7;
     }
-    
+
     // #body-logos {
     //   grid-column: 1 / 2;
     //   grid-row: 7 / 8;
     // }
   }
-  
+
   .content-with-sidebars {
-    
+
     #slider-row {
       margin-left: 4rem;
       margin-right: 1rem;
       padding-top: 10px;
       align-items: center;
     }
-    
+
     #user-options {
       margin: 0;
       width: auto;
     }
-    
+
     #bottom-options {
       margin: 0;
     }
-    
+
     #information {
       font-size: 1em;
     }
-    
-  
-  
-  #title {
-    font-size: 2rem;
-    margin-left: 15px;
-    text-wrap: wrap;
+
+
+    #title {
+      font-size: 2rem;
+      margin-left: 15px;
+      text-wrap: wrap;
+
+    }
 
   }
-  
-}
-  
-  
+
+
   #map-container {
     display: flex;
     flex-direction: column;
-    
-    
+
+
     #map-contents {
       position: relative;
     }
-    
+
     #map-legend {
       right: 0;
     }
-    
+
     .colorbar-container-horizontal {
       margin-top: 1rem;
       margin-bottom: 0.5rem;
       z-index: 5000;
       --height: 0.75rem;
     }
-    
+
   }
 
 
@@ -2797,14 +2940,22 @@ button:focus-visible,
 .leaflet-container img.leaflet-image-layer {
   max-width: none !important;
   /* Preserve crisp pixels with scaled up images */
-  image-rendering: optimizeSpeed;             /* Legal fallback */
-  image-rendering: -moz-crisp-edges;          /* Firefox        */
-  image-rendering: -o-crisp-edges;            /* Opera          */
-  image-rendering: -webkit-optimize-contrast; /* Safari         */
-  image-rendering: optimize-contrast;         /* CSS3 Proposed  */
-  image-rendering: crisp-edges;               /* CSS4 Proposed  */
-  image-rendering: pixelated;                 /* CSS4 Proposed  */
-  -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
+  image-rendering: optimizeSpeed;
+  /* Legal fallback */
+  image-rendering: -moz-crisp-edges;
+  /* Firefox        */
+  image-rendering: -o-crisp-edges;
+  /* Opera          */
+  image-rendering: -webkit-optimize-contrast;
+  /* Safari         */
+  image-rendering: optimize-contrast;
+  /* CSS3 Proposed  */
+  image-rendering: crisp-edges;
+  /* CSS4 Proposed  */
+  image-rendering: pixelated;
+  /* CSS4 Proposed  */
+  -ms-interpolation-mode: nearest-neighbor;
+  /* IE8+           */
 }
 
 .cds-snackbar-alert {
@@ -2815,7 +2966,7 @@ button:focus-visible,
   z-index: 999;
 }
 
-.snackbar-alert-ul { 
+.snackbar-alert-ul {
   margin-left: 1em;
 }
 
@@ -2825,7 +2976,9 @@ button:focus-visible,
   }
 }
 
-.menu-button, .share-button, .whats-new-button {
+.menu-button,
+.share-button,
+.whats-new-button {
   outline: 2px solid var(--smithsonian-yellow) !important;
   height: 2rem !important;
 }
@@ -2849,24 +3002,25 @@ div.callout-wrapper {
 
 #la-fires {
   max-width: 20ch;
-  
+
   .v-btn {
     height: fit-content; // calc(var(--v-btn-height) + 18px);
     padding-block: 5px;
   }
-  
+
   .v-btn__content {
     white-space: normal;
 
   }
 }
+
 .la-fires-cds-dialog .cds-dialog-card .v-card-text {
   height: unset;
 }
 
 .pulse {
   animation-name: pulse;
-  animation-duration: 1.5s ;
+  animation-duration: 1.5s;
   animation-iteration-count: 3;
 }
 
@@ -2875,11 +3029,14 @@ div.callout-wrapper {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.2);
   }
+
   100% {
     transform: scale(1);
   }
 }
 </style>
+  

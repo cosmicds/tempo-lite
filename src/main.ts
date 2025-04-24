@@ -2,16 +2,16 @@
 import Vue, { createApp } from "vue";
 
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
-import LocationSearch from "./LocationSearch.vue";
+import LocationSearch from "./components/LocationSearch.vue";
 import TempoLite from "./TempoLite.vue";
-import Colorbar from './ColorBar.vue';
-import ColorBarHorizontal from "./ColorBarHorizontal.vue";
-import InfoButton from "./InfoButton.vue";
+import Colorbar from './components/ColorBar.vue';
+import ColorBarHorizontal from "./components/ColorBarHorizontal.vue";
+import InfoButton from "./components/InfoButton.vue";
 import vuetify from "../plugins/vuetify";
-import SnackbarAlert from "./SnackbarAlert.vue";
-import ShareButton from "./ShareButton.vue";
-import CDSDialog from "./CDSDialog.vue";
-import MarqeeAlert from "./MarqeeAlert.vue";
+import SnackbarAlert from "./components/SnackbarAlert.vue";
+import ShareButton from "./components/ShareButton.vue";
+import CDSDialog from "./components/CDSDialog.vue";
+import MarqeeAlert from "./components/MarqeeAlert.vue";
 
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";

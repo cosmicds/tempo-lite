@@ -23,8 +23,15 @@
           aria-label="Get link to share selected view"
           class="share-button"
           icon
-          @click="copy(source)"
-          @keyup.enter="copy(source)"
+          @click="() => {
+            copy(source);
+            $emit('share');
+          }
+          "
+          @keyup.enter="() => {
+            copy(source);
+            $emit('share');
+          }"
           v-bind="props"
           :color="buttonColor"
           :elevation="elevation"
@@ -83,6 +90,8 @@ export default defineComponent({
       snackbar: false,
     };
   },
+
+  emits: ["share"],
 });
 </script>
 
