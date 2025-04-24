@@ -185,7 +185,7 @@
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
         <ul class="snackbar-alert-ul">
           <li class="change-item mb-5" v-for="change in changes" :key="change.date" :data-date="change.date">
-            <span style="font-weight:bold;">{{ change.date }}</span><br> <span v-html="change.html">  </span>{{ change.text }}
+            <span :style='{"font-weight":"bold", "color": `${change.highlight ? "var(--smithsonian-yellow)" : "currentColor"}` }'>{{ change.date }}</span><br> <span v-html="change.html">  </span>{{ change.text }}
           </li>
         </ul>
         <!-- <template v-slot:activator="{ onClick, id }">
@@ -197,7 +197,7 @@
 
       <div id="menu-area">
         <v-btn 
-          v-if="(new Date('2025-02-21 00:00:00') > new Date())"
+          v-if="(new Date('2025-05-7 00:00:00') > new Date())"
           class='whats-new-button pulse' 
           aria-label="What's new" 
           @click="showChanges = true" 
@@ -262,6 +262,13 @@
                 @keyup.enter="showAboutData = true"
                 >
                 About the Data
+              </v-list-item>
+              
+              <v-list-item 
+                
+                aria-label="Leave Page to Educator Resources"
+                >
+                <a style="font-weight: normal;" tabindex="0"  href="https://www.cosmicds.cfa.harvard.edu/resources/tempo" target="_blank" rel="noopener">Educator Resources<v-icon>mdi-open-in-new</v-icon></a>
               </v-list-item>
               
               <v-list-item 
@@ -571,7 +578,21 @@
                 no-today
                 dark
               >
-                <template #action-buttons></template>
+                <template #action-buttons>
+                  <button
+                    class="dp__action_button dp__action-latest"
+                    @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                    @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                    :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                    elevation="0"
+                    size="sm"
+                  >
+                    Latest
+                </button>
+                </template>
+                <!-- <template #action-extra="{ selectCurrentDate }">
+                
+                </template> -->
               </date-picker>
             </v-radio-group>
           </div>        
@@ -603,6 +624,24 @@
                   size="md"
                 >
                   <v-icon>mdi-chevron-double-left</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <v-spacer></v-spacer>
+            <v-tooltip :disabled="touchscreen" text="Get Data for latest available day">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  style="padding-inline: 4px;"
+                  @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                  @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                  :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                  color="#009ade"
+                  variant="outlined"
+                  elevation="0"
+                  size="md"
+                >
+                  Latest Data
                 </v-btn>
               </template>
             </v-tooltip>
@@ -1475,7 +1514,7 @@ function updateURL() {
     window.history.replaceState(null, '', url.toString());
     url.search = searchParams.toString();
     currentUrl.value = url.toString();
-    window.history.replaceState(stateObj, '', url);
+    // window.history.replaceState(stateObj, '', url);
   }
 }
 
@@ -2064,6 +2103,17 @@ watch(singleDateSelected, (date: Date) => {
 .dp__cell_disabled {
   color: #888 !important;
   font-weight: 400;
+}
+
+button.dp__action-latest {
+  color: white;
+  background: var(--dp-primary-color);
+}
+
+button.dp__action-latest[disabled] {
+  background: var(--dp-disabled-color);
+  color: #ccc;
+  
 }
 
 html {
