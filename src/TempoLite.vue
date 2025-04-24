@@ -265,6 +265,13 @@
               </v-list-item>
               
               <v-list-item 
+                
+                aria-label="Leave Page to Educator Resources"
+                >
+                <a style="font-weight: normal;" tabindex="0"  href="https://www.cosmicds.cfa.harvard.edu/resources/tempo" target="_blank" rel="noopener noreferrer">Educator Resources<v-icon>mdi-open-in-new</v-icon></a>
+              </v-list-item>
+              
+              <v-list-item 
                 tabindex="0" 
                 aria-label="Show credits"
                 @click="showCredits = true"
