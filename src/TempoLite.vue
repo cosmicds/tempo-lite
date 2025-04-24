@@ -571,7 +571,21 @@
                 no-today
                 dark
               >
-                <template #action-buttons></template>
+                <template #action-buttons>
+                  <button
+                    class="dp__action_button dp__action-latest"
+                    @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                    @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                    :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                    elevation="0"
+                    size="sm"
+                  >
+                    Latest
+                </button>
+                </template>
+                <!-- <template #action-extra="{ selectCurrentDate }">
+                
+                </template> -->
               </date-picker>
             </v-radio-group>
           </div>        
@@ -603,6 +617,24 @@
                   size="md"
                 >
                   <v-icon>mdi-chevron-double-left</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <v-spacer></v-spacer>
+            <v-tooltip :disabled="touchscreen" text="Get Data for latest available day">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  style="padding-inline: 4px;"
+                  @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                  @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                  :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                  color="#009ade"
+                  variant="outlined"
+                  elevation="0"
+                  size="md"
+                >
+                  Latest Data
                 </v-btn>
               </template>
             </v-tooltip>
@@ -2064,6 +2096,17 @@ watch(singleDateSelected, (date: Date) => {
 .dp__cell_disabled {
   color: #888 !important;
   font-weight: 400;
+}
+
+button.dp__action-latest {
+  color: white;
+  background: var(--dp-primary-color);
+}
+
+button.dp__action-latest[disabled] {
+  background: var(--dp-disabled-color);
+  color: #ccc;
+  
 }
 
 html {
