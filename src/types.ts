@@ -1,5 +1,6 @@
+export type LatLngPair = [number, number];
 export interface LocationOfInterest {
-    latlng: L.LatLngExpression;
+    latlng: LatLngPair;
     zoom: number;
     text: string;
     description: string;
@@ -37,3 +38,14 @@ export class LatLngBounds extends L.LatLngBounds {
     return this;
   }
 }
+
+
+// Library-agnostic bounds representation
+export interface BoundingBox {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+export type BoundsSelector = (date: Date) => BoundingBox;

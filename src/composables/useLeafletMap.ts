@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import L, { Map } from 'leaflet';
 
 export interface InitMapOptions {
@@ -56,12 +56,21 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
       onReady(map.value as Map);
     }
   }
+
+  function cleanupMap() {
+    if (map.value) {
+      map.value.off();
+      map.value.remove();
+      map.value = null;
+    }
+  }
   
   function createMap() {
     map.value = L.map(id, { zoomControl: false });
     map.value.setView(options.loc as L.LatLngTuple, options.zoom);
     
     map.value.whenReady(setupMap);
+    return map;
   }
 
   function setView(latlng: [number, number] | L.LatLngExpression, zoom: number) {
@@ -76,13 +85,17 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
     }
   }
   
-  
   onMounted(() => {
-    createMap();
+    
+  });
+
+  onUnmounted(() => {
+    cleanupMap();
   });
 
   return {
     map,
+    createMap,
     setView,
     resetView
   };

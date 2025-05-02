@@ -1,4 +1,4 @@
-import {ref, Ref, watch, isRef} from 'vue';
+import {ref, Ref, watch, isRef, onUnmounted} from 'vue';
 import { LatLngBounds } from '../types';
 import L from 'leaflet';
 
@@ -32,7 +32,12 @@ export function useImageOverlay(
   function addTo(map: L.Map) {
     overlay.value.addTo(map);
   }
-  
+
+  onUnmounted(() => {
+    if (overlay.value) {
+      overlay.value.remove();
+    }
+  });
   
   return { overlay, addTo};
 
