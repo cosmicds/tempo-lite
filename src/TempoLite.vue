@@ -926,7 +926,6 @@ import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { Map } from "leaflet";
 import { v4 } from "uuid";
-import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
 import { cbarNO2 } from "./revised_cmap";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
