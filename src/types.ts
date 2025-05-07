@@ -1,4 +1,22 @@
-export type LatLngPair = [number, number];
+
+// Types
+
+
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+type LocationOrderedPair<T extends string> = [number, number] & {_order: T};
+
+export type LatLngPair = LocationOrderedPair<'(Lat,Lng)'>;
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export type LngLatPair = LocationOrderedPair<'(Lng,Lat)'>;
+
+export type MappingBackends = 'leaflet' | 'maplibre';
+
+export interface InitMapOptions<T> {
+  loc: T  extends 'leaflet' ? LatLngPair : T extends 'maplibre' ? LngLatPair : [number, number],
+  zoom: number,
+  t?: number | null,
+}
 export interface LocationOfInterest {
     latlng: LatLngPair;
     zoom: number;

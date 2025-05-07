@@ -932,13 +932,14 @@ import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useLeafletMap } from "./composables/useLeafletMap";
-import { useImageOverlay } from "./composables/useLeafletImageOverlay";
+import { useImageOverlay } from "./composables/useImageOverlay";
 import { useLeafletBounds } from './composables/useLeafletBounds';
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import { useFieldOfRegardLeaflet} from "./composables/useFieldOfRegard";
 import { useLocationMarker } from "./composables/useLeafletMarker";
 import { interestingEvents } from "./interestingEvents";
-import { LatLngPair } from "./types";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
 
 const display = useDisplay();
 const calendar = ref<DatePickerInstance | null>(null);
@@ -1225,7 +1226,7 @@ const initLat = parseFloat(urlParams.get("lat") || '40.044');
 const initLon = parseFloat(urlParams.get("lon") || '-98.789');
 const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
-const initState = ref({
+const initState = ref<InitMapOptions<'leaflet'>>({
   loc: [initLat, initLon] as LatLngPair,
   zoom: initZoom,
   t: initTime ? +initTime : null
@@ -1513,14 +1514,15 @@ async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBox
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
-  setView([40.044, -98.789], 4);
+  setView([40.044, -98.789] as LatLngPair, 4);
 }
 
 function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
   const [feature, text] = items;
   if (feature !== null) {
+    // Latitude, Longitude order
     const coordinates: [number, number] = [feature.center[1], feature.center[0]];
-    map.value?.setView(coordinates, 12);
+    setView(coordinates, 12);
     setMarker(coordinates);
     userSelectedLocations.push(text);
   }
@@ -1626,7 +1628,7 @@ function goToLocationOfInterst(index: number, subindex: number) {
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
-  map.value?.setView(loi.latlng, loi.zoom);
+  setView(loi.latlng, loi.zoom);
   if (loi.index !== undefined) {
     timeIndex.value = loi.index;
   } else {
@@ -1640,7 +1642,7 @@ function goToLA() {
   const event = interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
   if (event !== undefined && map.value) {
     const loi = event[0].locations;
-    map.value.setView(loi[0].latlng, loi[0].zoom);
+    setView(loi[0].latlng, loi[0].zoom);
   }
 }
 

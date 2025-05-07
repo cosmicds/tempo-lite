@@ -1,14 +1,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import L, { Map } from 'leaflet';
+import { InitMapOptions } from '@/types';
 
-export interface InitMapOptions {
-  loc: L.LatLngExpression | number[],
-  zoom: number,
-  // allow other options
-  [x: string | number | symbol]: unknown
-}
 
-export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map: Map) => void) {
+export function useLeafletMap(id="map", options: InitMapOptions<'leaflet'>, onReady?: (map: Map) => void) {
   
   // this is where our map will be
   const map = ref<Map | null>(null);
@@ -73,7 +68,7 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
     return map;
   }
 
-  function setView(latlng: [number, number] | L.LatLngExpression, zoom: number) {
+  function setView(latlng: L.LatLngExpression, zoom: number) {
     if (map.value) {
       map.value.setView(latlng, zoom);
     }
@@ -81,7 +76,7 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
   
   function resetView() {
     if (map.value) {
-      map.value.setView(options.loc as L.LatLngTuple, options.zoom);
+      map.value.setView(options.loc, options.zoom);
     }
   }
   

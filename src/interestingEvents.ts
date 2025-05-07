@@ -1,4 +1,4 @@
-import { InterestingEvent } from "./types";
+import { InterestingEvent, LatLngPair } from "./types";
 
 export const interestingEvents: InterestingEvent[] = [
   {
@@ -25,7 +25,7 @@ export const interestingEvents: InterestingEvent[] = [
     `,
     locations: [
       {
-        latlng: [33.4773, -118.5975],
+        latlng: [33.4773, -118.5975] as LatLngPair,
         zoom: 8,
         text: "Los Angeles Wildfires",
         time: "2025-01-08T19:51:00.000Z",
@@ -59,7 +59,7 @@ export const interestingEvents: InterestingEvent[] = [
         `,
     locations: [
       {
-        latlng: [31.938392, -99.095785],
+        latlng: [31.938392, -99.095785] as LatLngPair,
         zoom: 6,
         text: "Texas Oil and Gas Production",
         time: "2024-03-28T13:04:00.000Z",
@@ -67,7 +67,7 @@ export const interestingEvents: InterestingEvent[] = [
           "<p>The Permian basin, near Odessa, has two large plumes of NO2. This is the largest oil and gas producing area in the USA. You can also see here how pollution from a source in one state (Texas) can be transported across state lines to New Mexico.</p>",
       },
       {
-        latlng: [31.331933, -91.575283],
+        latlng: [31.331933, -91.575283] as LatLngPair,
         zoom: 8,
         text: "LA/MS Fires",
         time: "2024-03-28T16:44:00.000Z",
@@ -88,7 +88,7 @@ export const interestingEvents: InterestingEvent[] = [
         `,
     locations: [
       {
-        latlng: [36.215934, -119.7775],
+        latlng: [36.215934, -119.7775] as LatLngPair,
         zoom: 6,
         text: "California Traffic and Agriculture",
         time: "2023-11-03T14:22:00.000Z",
@@ -96,7 +96,7 @@ export const interestingEvents: InterestingEvent[] = [
           "<p>Los Angeles clearly stands out. NO<sub>2</sub> values are even higher than the maximum of our color bar. You can clearly see the highways including Route 10 between San Bernardino and Mexicali and Route 15 leading from San Bernardino towards Las Vegas. A significant amount of NO<sub>2</sub> in California&rsquo;s central valley is a byproduct of agricultural activity there. Excess fertilizer in the soil gets broken down by microbes to produce nitrogen oxides which are very reactive. Emissions that don&rsquo;t come from combustion are typically much harder to see, but the Central Valley is an area where TEMPO data may reveal this agricultural source of pollution.</p>",
       },
       {
-        latlng: [41.85726, -80.531177],
+        latlng: [41.85726, -80.531177] as LatLngPair,
         zoom: 5,
         text: "Northeast: Large Emissions Plumes",
         time: "2023-11-03T12:22:00.000Z",
@@ -124,7 +124,7 @@ export const interestingEvents: InterestingEvent[] = [
         `,
     locations: [
       {
-        latlng: [34.359786, -111.700124],
+        latlng: [34.359786, -111.700124] as LatLngPair,
         zoom: 7,
         text: "Arizona Urban Traffic and Fires",
         time: "2023-11-01T14:22:00.000Z",
@@ -132,7 +132,7 @@ export const interestingEvents: InterestingEvent[] = [
           "<p>NO<sub>2</sub> increases during daily rush hour. In Phoenix, notice the high levels of NO<sub>2</sub> early in the morning, dip down during the day, then start to build back up during the evening commute.</p><p>Fires can be seen between Phoenix and Flagstaff. These are most easily identified as hot spots of NO<sub>2</sub> that appear quickly.</p>",
       },
       {
-        latlng: [36.1716, -115.1391],
+        latlng: [36.1716, -115.1391] as LatLngPair,
         zoom: 7,
         text: "Las Vegas: Fairly Constant Levels All Day",
         time: "2023-11-01T14:22:00.000Z",

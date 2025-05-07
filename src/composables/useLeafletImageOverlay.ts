@@ -2,7 +2,7 @@ import {ref, Ref, watch, isRef, onUnmounted} from 'vue';
 import { LatLngBounds } from '../types';
 import L from 'leaflet';
 
-export function useImageOverlay(
+export function useLeafletImageOverlay(
   imageUrl: Ref<string> | string, 
   opacity: Ref<number> | number,
   imageBounds: Ref<LatLngBounds | L.LatLngBounds>
