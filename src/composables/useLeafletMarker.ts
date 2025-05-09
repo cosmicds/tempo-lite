@@ -1,9 +1,9 @@
 import {Ref, ref} from 'vue';
 import L, {Marker, Map} from 'leaflet';
 
-export function useLocationMarker( map: Ref<Map | null>) {
+export function useLocationMarker( map: Ref<Map | null>, show: boolean) {
   
-  const showLocationMarker = ref(false);
+  const showLocationMarker = ref(show);
   const locationMarker = ref<null | Marker>(null);
   
   
@@ -28,11 +28,13 @@ export function useLocationMarker( map: Ref<Map | null>) {
   
   function removeMarker() {
     locationMarker.value?.remove();
+    locationMarker.value = null;
   }
   
   return {
     locationMarker,
     setMarker,
-    removeMarker
+    removeMarker,
+    showLocationMarker,
   };
 }

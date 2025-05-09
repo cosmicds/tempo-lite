@@ -1356,7 +1356,7 @@ const {
   setMarker,
   removeMarker,
   locationMarker
-} = useLocationMarker(map as Ref<Map>);
+} = useLocationMarker(map as Ref<Map>,  showLocationMarker.value);
 
 import { usezoomhome} from './composables/useZoomHome';
 
