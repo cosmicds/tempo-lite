@@ -1,17 +1,20 @@
-import { ref, onMounted } from 'vue';
+import { Ref, ref, onMounted, onUnmounted } from 'vue';
 import L, { Map } from 'leaflet';
+import { InitMapOptions, LatLngPair } from '@/types';
 
-export interface InitMapOptions {
-  loc: L.LatLngExpression | number[],
-  zoom: number,
-  // allow other options
-  [x: string | number | symbol]: unknown
-}
+export interface LeafletComposable {
+    map: Ref<L.Map | null>;
+    createMap: () => Ref<L.Map>;
+    setView: (latlng: LatLngPair, zoom: number) => void;
+    resetView: () => void;
+    cleanupMap: () => void;
+    getCenter: () => L.LatLng;
+  }
 
-export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map: Map) => void) {
+export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map: L.Map) => void): LeafletComposable {
   
   // this is where our map will be
-  const map = ref<Map | null>(null);
+  const map = ref<L.Map | null>(null);
   const basemap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
   const labelmap = ref<L.TileLayer.WMS | null | L.TileLayer>(null);
   
@@ -21,7 +24,7 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
       .then(data => {
         L.geoJson(data, {
           style: { color: "black", weight: 1, opacity: 0.8 }
-        }).addTo(map.value as Map);
+        }).addTo(map.value as L.Map);
       });
   }
   
@@ -40,7 +43,7 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
       attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       pane: 'labels'
     });
-    basemap.value.addTo(map.value as Map);
+    basemap.value.addTo(map.value as L.Map);
     
     // add Stadia Toner labels only
     labelmap.value = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png', {
@@ -49,41 +52,62 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
       attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       pane: 'labels'
     });
-    labelmap.value.addTo(map.value as Map);
+    labelmap.value.addTo(map.value as L.Map);
     
     addCoastlines();
     if (onReady !== undefined) {
-      onReady(map.value as Map);
+      onReady(map.value as L.Map);
+    }
+  }
+
+  function cleanupMap() {
+    if (map.value) {
+      map.value.off();
+      map.value.remove();
+      map.value = null;
     }
   }
   
-  function createMap() {
+  function createMap(): Ref<L.Map> {
     map.value = L.map(id, { zoomControl: false });
     map.value.setView(options.loc as L.LatLngTuple, options.zoom);
     
     map.value.whenReady(setupMap);
+    return map as Ref<L.Map>;
   }
 
-  function setView(latlng: [number, number] | L.LatLngExpression, zoom: number) {
+  function setView(latlng:LatLngPair, zoom: number) {
     if (map.value) {
       map.value.setView(latlng, zoom);
     }
   }
   
-  function resetView() {
+  function getCenter() {
     if (map.value) {
-      map.value.setView(options.loc as L.LatLngTuple, options.zoom);
+      return map.value.getCenter();
     }
   }
   
+  function resetView() {
+    if (map.value) {
+      map.value.setView(options.loc, options.zoom);
+    }
+  }
   
   onMounted(() => {
-    createMap();
+    
+  });
+
+  onUnmounted(() => {
+    cleanupMap();
   });
 
   return {
     map,
+    createMap,
     setView,
-    resetView
-  };
+    resetView,
+    cleanupMap,
+    getCenter,
+  } as LeafletComposable;
 }
