@@ -933,7 +933,7 @@ import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useLeafletMap } from "./composables/useLeafletMap";
 import { useImageOverlay } from "./composables/useImageOverlay";
-import { useLeafletBounds } from './composables/useLeafletBounds';
+import { useBounds } from './composables/useBounds';
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import { useFieldOfRegardLeaflet} from "./composables/useFieldOfRegard";
 import { useLocationMarker } from "./composables/useLeafletMarker";
@@ -1248,7 +1248,7 @@ const sublocationRadio = ref<number | null>(null);
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { leafletBounds: imageBounds, boundsArray: bounds } = useLeafletBounds(date);
+const { currentBounds: imageBounds } = useBounds(date);
 
 
 
@@ -1522,7 +1522,7 @@ function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
   if (feature !== null) {
     // Latitude, Longitude order
     const coordinates: [number, number] = [feature.center[1], feature.center[0]];
-    setView(coordinates, 12);
+    setView(coordinates as LatLngPair, 12);
     setMarker(coordinates);
     userSelectedLocations.push(text);
   }

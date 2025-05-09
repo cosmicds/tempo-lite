@@ -1,13 +1,12 @@
 import {Ref} from 'vue';
-import { LatLngBounds, MappingBackends } from '../types';
-import L from 'leaflet';
+import { BoundingBox, MappingBackends } from '../types';
 
 import { useLeafletImageOverlay } from './useLeafletImageOverlay';
 
 export function useImageOverlay(
   imageUrl: Ref<string> | string, 
   opacity: Ref<number> | number,
-  imageBounds: Ref<LatLngBounds | L.LatLngBounds>,
+  imageBounds: Ref<BoundingBox>,
   backend: MappingBackends = 'leaflet'
 ) {
   
