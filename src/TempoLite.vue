@@ -1226,7 +1226,7 @@ const initLat = parseFloat(urlParams.get("lat") || '40.044');
 const initLon = parseFloat(urlParams.get("lon") || '-98.789');
 const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
-const initState = ref<InitMapOptions<'leaflet'>>({
+const initState = ref<InitMapOptions>({
   loc: [initLat, initLon] as LatLngPair,
   zoom: initZoom,
   t: initTime ? +initTime : null

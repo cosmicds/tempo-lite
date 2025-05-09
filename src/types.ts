@@ -12,8 +12,8 @@ export type LngLatPair = LocationOrderedPair<'(Lng,Lat)'>;
 
 export type MappingBackends = 'leaflet' | 'maplibre';
 
-export interface InitMapOptions<T> {
-  loc: T  extends 'leaflet' ? LatLngPair : T extends 'maplibre' ? LngLatPair : [number, number],
+export interface InitMapOptions {
+  loc: LatLngPair,
   zoom: number,
   t?: number | null,
 }
