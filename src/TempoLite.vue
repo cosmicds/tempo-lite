@@ -935,7 +935,7 @@ import { useLeafletMap } from "./composables/useLeafletMap";
 import { useImageOverlay } from "./composables/useImageOverlay";
 import { useBounds } from './composables/useBounds';
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
-import { useFieldOfRegardLeaflet} from "./composables/useFieldOfRegard";
+import { useFieldOfRegardLeaflet} from "./composables/useFieldOfRegardLeaflet";
 import { useLocationMarker } from "./composables/useLeafletMarker";
 import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
