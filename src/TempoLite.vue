@@ -534,7 +534,6 @@
             :track-size="10"
             show-ticks="always"
             hide-details
-            :disabled="loadedImagesProgress < 100"
             @end="onTimeSliderEnd"
           >
             <template v-slot:thumb-label>
@@ -921,25 +920,26 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, ComputedRef } from "vue";
+import { Ref, ref, computed, watch, onMounted, onBeforeUnmount, nextTick, ComputedRef } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
-import L, { LatLngExpression, Map } from "leaflet";
+import { Map } from "leaflet";
 import { v4 } from "uuid";
-import "leaflet.zoomhome";
 import { getTimezoneOffset } from "date-fns-tz";
 import { cbarNO2 } from "./revised_cmap";
-import fieldOfRegard from "./assets/TEMPO_FOR.json";
-import augustFieldOfRegard from "./assets/august_for.json";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useLeafletMap } from "./composables/useLeafletMap";
-import { useImageOverlay } from "./composables/useLeafletImageOverlay";
-import { useLeafletBounds } from './composables/useLeafletBounds';
+import { useImageOverlay } from "./composables/useImageOverlay";
+import { useBounds } from './composables/useBounds';
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
+import { useFieldOfRegardLeaflet} from "./composables/useFieldOfRegardLeaflet";
+import { useLocationMarker } from "./composables/useLeafletMarker";
 import { interestingEvents } from "./interestingEvents";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
 
 const display = useDisplay();
 const calendar = ref<DatePickerInstance | null>(null);
@@ -1226,8 +1226,8 @@ const initLat = parseFloat(urlParams.get("lat") || '40.044');
 const initLon = parseFloat(urlParams.get("lon") || '-98.789');
 const initZoom = parseFloat(urlParams.get("zoom") || '4');
 const initTime = urlParams.get("t");
-const initState = ref({
-  loc: [initLat, initLon] as LatLngExpression,
+const initState = ref<InitMapOptions>({
+  loc: [initLat, initLon] as LatLngPair,
   zoom: initZoom,
   t: initTime ? +initTime : null
 });
@@ -1237,7 +1237,7 @@ const homeLat = 40.044;
 const homeLon = -98.789;
 const homeZoom = 4;
 const homeState = ref({
-  loc: [homeLat, homeLon] as LatLngExpression,
+  loc: [homeLat, homeLon] as LatLngPair,
   zoom: homeZoom,
   t: null as number | null
 });
@@ -1248,20 +1248,10 @@ const sublocationRadio = ref<number | null>(null);
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { leafletBounds: imageBounds, boundsArray: bounds } = useLeafletBounds(date);
+const { currentBounds: imageBounds } = useBounds(date);
 
 
-const fieldOfRegardLayer = L.geoJSON(
-  fieldOfRegard as GeoJSON.GeometryCollection,
-  {
-    style: {
-      color: "#c10124",
-      fillColor: "transparent",
-      weight: 1,
-      opacity: 0.8,
-    },
-  }
-) as L.Layer;
+
 
 
 const selectedTimezone = ref("US/Eastern");
@@ -1270,14 +1260,12 @@ const playInterval = ref<Timeout | null>(null);
 const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
 const showControls = ref(false);
-const showFieldOfRegard = ref(true);
 const showCredits = ref(false);
 const showUserGuide = ref(false);
 const showAboutData = ref(false);
 const loadedImagesProgress = ref(0);
 
 const showLocationMarker = ref(true);
-const locationMarker = ref<L.Marker | null>(null);
 const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
 const showLADialog = ref(false);
@@ -1319,6 +1307,7 @@ const cloudDataAvailable = computed(() => {
   return cloudTimestampsSet.value.has(timestamp.value);
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const whichDataSet = computed(() => {
   if (fosterTimestampsSet.value.has(timestamp.value)) {
     return 'TEMPO-lite';
@@ -1348,39 +1337,49 @@ const showingExtendedRange = computed(() => {
   return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
 });
 
+
+
+
 const onMapReady = (map: Map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
 };
-const { map, setView } = useLeafletMap("map", initState.value, onMapReady);
+const { map, createMap, setView } = useLeafletMap("map", initState.value, onMapReady);
+
+const { 
+  addFieldOfRegard,
+  showFieldOfRegard,
+  updateFieldOfRegard 
+} = useFieldOfRegardLeaflet(singleDateSelected, map as Ref<Map>);
+
+const {
+  setMarker,
+  removeMarker,
+  locationMarker
+} = useLocationMarker(map as Ref<Map>,  showLocationMarker.value);
+
+import { usezoomhome} from './composables/useZoomHome';
 
 onMounted(() => {
   window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
+  createMap();
 
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const zoomHome = L.Control.zoomHome({ homeCoordinates: homeState.value.loc, homeZoom: homeState.value.zoom });
-  const originalZH = zoomHome._zoomHome.bind(zoomHome);
-  zoomHome._zoomHome = (_e: Event) => {
-    originalZH();
+  usezoomhome(map as Ref<Map>, homeState.value.loc, homeState.value.zoom, (_e: Event) => {
     sublocationRadio.value = null;
     // check if location marker is not null and on map. if so remove it
     if (locationMarker.value !== null) {
-      locationMarker.value.remove();
+      removeMarker();
     }
-  };
-  zoomHome.addTo(map.value);
+  });
+
 
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   imageOverlay.addTo(map.value as Map);
   cloudOverlay.addTo(map.value as Map);
 
   updateFieldOfRegard();
-  if (showFieldOfRegard.value) {
-    fieldOfRegardLayer.addTo(map.value as Map);
-  }
+  addFieldOfRegard();
 
   createUserEntry();
   window.addEventListener("visibilitychange", () => {
@@ -1396,7 +1395,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   // cleanup event handlers
   if (map.value) {
-    map.value.off('movend');
+    map.value.off('moveend');
     map.value.off('zoomend');
   }
 });
@@ -1460,23 +1459,6 @@ const thumbLabel = computed(() => {
 });
 
 
-function setMarker(latlng: L.LatLngExpression) {
-  console.log(L.Icon.Default.prototype.options);
-  const icon = L.icon({
-    ...L.Icon.Default.prototype.options,
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
-  if (locationMarker.value == null) {
-    locationMarker.value = new L.Marker(latlng, { icon: icon, pane: 'labels', opacity: 0.8 });
-  } else {
-    locationMarker.value.setLatLng(latlng);
-  }
-  if (showLocationMarker.value) {
-    locationMarker.value.addTo(map.value as Map);
-  }
-}
 
 
 function updateHash() {
@@ -1532,14 +1514,15 @@ async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBox
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
-  setView([40.044, -98.789], 4);
+  setView([40.044, -98.789] as LatLngPair, 4);
 }
 
 function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
   const [feature, text] = items;
   if (feature !== null) {
+    // Latitude, Longitude order
     const coordinates: [number, number] = [feature.center[1], feature.center[0]];
-    map.value?.setView(coordinates, 12);
+    setView(coordinates as LatLngPair, 12);
     setMarker(coordinates);
     userSelectedLocations.push(text);
   }
@@ -1609,15 +1592,6 @@ function getTempoDataUrl(timestamp: number): string {
 }
 
 
-function updateFieldOfRegard() {
-  if (date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
-    (fieldOfRegardLayer as L.GeoJSON).clearLayers();
-    (fieldOfRegardLayer as L.GeoJSON).addData(augustFieldOfRegard as GeoJSON.GeometryCollection);
-  } else {
-    (fieldOfRegardLayer as L.GeoJSON).clearLayers();
-    (fieldOfRegardLayer as L.GeoJSON).addData(fieldOfRegard as GeoJSON.GeometryCollection);
-  }
-}
 
 
 function imagePreload() {
@@ -1627,7 +1601,12 @@ function imagePreload() {
   // console.log('preloading images for ', this.thumbLabel);
   const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1);
   const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
-  const cloudImages = times.filter(ts => cloudTimestampsSet.value.has(ts)).map(ts => getCloudFilename(new Date(ts)));
+  const cloudImages = times.reduce((acc: string[], ts) => {
+    if (cloudTimestampsSet.value.has(ts)) {
+      acc.push(getCloudFilename(new Date(ts)));
+    }
+    return acc;
+  }, []);
   images.push(...cloudImages);
   const promises = _preloadImages(images);
   let loaded = 0;
@@ -1649,7 +1628,7 @@ function goToLocationOfInterst(index: number, subindex: number) {
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
-  map.value?.setView(loi.latlng, loi.zoom);
+  setView(loi.latlng, loi.zoom);
   if (loi.index !== undefined) {
     timeIndex.value = loi.index;
   } else {
@@ -1663,7 +1642,7 @@ function goToLA() {
   const event = interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
   if (event !== undefined && map.value) {
     const loi = event[0].locations;
-    map.value.setView(loi[0].latlng, loi[0].zoom);
+    setView(loi[0].latlng, loi[0].zoom);
   }
 }
 
@@ -1913,17 +1892,10 @@ watch(useHighRes, () => {
   imagePreload();
 });
 
-watch(imageBounds, (bounds: L.LatLngBounds) => {
-  console.log('image bounds change to', whichDataSet.value, bounds.toBBoxString());
-});
 
-watch(showFieldOfRegard, (show: boolean) => {
+
+watch(showFieldOfRegard, (_show: boolean) => {
   fieldOfRegardToggled = true;
-  if (show) {
-    fieldOfRegardLayer.addTo(map.value as Map);
-  } else if (map.value) {
-    map.value.removeLayer(fieldOfRegardLayer as L.Layer);
-  }
 });
 
 watch(showClouds, (_show: boolean) => {

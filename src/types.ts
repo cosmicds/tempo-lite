@@ -1,5 +1,24 @@
+
+// Types
+
+
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+type LocationOrderedPair<T extends string> = [number, number] & {_order: T};
+
+export type LatLngPair = LocationOrderedPair<'(Lat,Lng)'>;
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export type LngLatPair = LocationOrderedPair<'(Lng,Lat)'>;
+
+export type MappingBackends = 'leaflet' | 'maplibre';
+
+export interface InitMapOptions {
+  loc: LatLngPair,
+  zoom: number,
+  t?: number | null,
+}
 export interface LocationOfInterest {
-    latlng: L.LatLngExpression;
+    latlng: LatLngPair;
     zoom: number;
     text: string;
     description: string;
@@ -37,3 +56,14 @@ export class LatLngBounds extends L.LatLngBounds {
     return this;
   }
 }
+
+
+// Library-agnostic bounds representation
+export interface BoundingBox {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+export type BoundsSelector = (date: Date) => BoundingBox;
