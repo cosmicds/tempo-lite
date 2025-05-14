@@ -1955,7 +1955,7 @@ watch(radio, (value: number | null) => {
   const date = datesOfInterest.value[value] ?? singleDateSelected.value;
   singleDateSelected.value = date;
   setNearestDate(date.getTime());
-  if (sublocationRadio.value == 0 && value) {
+  if (sublocationRadio.value == 0 && value !== null) {
     // run this manually as the watcher wouldn't trigger
     goToLocationOfInterst(value, 0);
   } else {
