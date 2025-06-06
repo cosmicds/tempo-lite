@@ -387,6 +387,17 @@
                 class="d-flex flex-row align-center justify-space-between"
               >
                 <v-checkbox
+                  v-model="showRoads"
+                  @keyup.enter="showRoads = !showRoads"
+                  label="Show Roads"
+                  color="#c10124"
+                  hide-details
+                />
+              </div>
+              <div
+                class="d-flex flex-row align-center justify-space-between"
+              >
+                <v-checkbox
                   v-model="showFieldOfRegard"
                   @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
                   label="TEMPO Field of Regard"
@@ -1343,8 +1354,9 @@ const showingExtendedRange = computed(() => {
 const onMapReady = (map: Map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
-};
-const { map, createMap, setView } = useLeafletMap("map", initState.value, onMapReady);
+};  
+const showRoads = ref(true);
+const { map, createMap, setView } = useLeafletMap("map", initState.value, showRoads, onMapReady);
 
 const { 
   addFieldOfRegard,

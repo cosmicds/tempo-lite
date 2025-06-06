@@ -1,4 +1,4 @@
-import { Ref, ref, onMounted, onUnmounted } from 'vue';
+import { Ref, ref, onMounted, onUnmounted, watch } from 'vue';
 import L, { Map } from 'leaflet';
 import { InitMapOptions, LatLngPair } from '@/types';
 
@@ -11,7 +11,7 @@ export interface LeafletComposable {
     getCenter: () => L.LatLng;
   }
 
-export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map: L.Map) => void): LeafletComposable {
+export function useLeafletMap(id="map", options: InitMapOptions, showRoads: Ref<boolean>, onReady?: (map: L.Map) => void): LeafletComposable {
   
   // this is where our map will be
   const map = ref<L.Map | null>(null);
@@ -53,6 +53,7 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
       pane: 'labels'
     });
     labelmap.value.addTo(map.value as L.Map);
+    toggleRoads(); // initial call to set the correct state
     
     addCoastlines();
     if (onReady !== undefined) {
@@ -93,6 +94,21 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
       map.value.setView(options.loc, options.zoom);
     }
   }
+  
+  // use showRoads to show/hide the labels pane
+  function toggleRoads() {
+    // set opacity of labelPane
+    if (map.value) {
+      const _labelPane = map.value.createPane("labels");
+      if (basemap.value && labelmap.value) {
+        basemap.value.setOpacity(showRoads.value ? 1 : 0);
+      }
+    }
+  }
+
+  watch(showRoads, () => {
+    toggleRoads();
+  }, { immediate: true });
   
   onMounted(() => {
     
