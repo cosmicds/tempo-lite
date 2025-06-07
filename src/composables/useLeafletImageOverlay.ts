@@ -1,18 +1,25 @@
-import {ref, Ref, watch, isRef} from 'vue';
-import { LatLngBounds } from '../types';
+import {ref, Ref, watch, isRef, onUnmounted} from 'vue';
+import { BoundingBox } from '../types';
 import L from 'leaflet';
 
-export function useImageOverlay(
+export function useLeafletImageOverlay(
   imageUrl: Ref<string> | string, 
   opacity: Ref<number> | number,
-  imageBounds: Ref<LatLngBounds | L.LatLngBounds>
+  imageBounds: Ref<BoundingBox>
 ) {
   
   imageUrl = isRef(imageUrl) ? imageUrl : ref(imageUrl);
   opacity = isRef(opacity) ? opacity : ref(opacity);
   imageBounds = isRef(imageBounds) ? imageBounds : ref(imageBounds);
   
-  const overlay = ref(new L.ImageOverlay(imageUrl.value, imageBounds.value, {
+  function toLeafletBounds(boundingBox: BoundingBox): L.LatLngBounds {
+    return new L.LatLngBounds(
+      new L.LatLng(boundingBox.south, boundingBox.west),
+      new L.LatLng(boundingBox.north, boundingBox.east)
+    );
+  }
+  
+  const overlay = ref(new L.ImageOverlay(imageUrl.value, toLeafletBounds(imageBounds.value), {
     opacity: opacity.value,
     interactive: false,
   }));
@@ -25,14 +32,19 @@ export function useImageOverlay(
     overlay.value.setOpacity(value);
   });
 
-  watch(imageBounds, (bounds: L.LatLngBounds) => {
-    overlay.value.setBounds(bounds);
+  watch(imageBounds, (bounds: BoundingBox) => {
+    overlay.value.setBounds(toLeafletBounds(bounds));
   });
   
   function addTo(map: L.Map) {
     overlay.value.addTo(map);
   }
-  
+
+  onUnmounted(() => {
+    if (overlay.value) {
+      overlay.value.remove();
+    }
+  });
   
   return { overlay, addTo};
 
