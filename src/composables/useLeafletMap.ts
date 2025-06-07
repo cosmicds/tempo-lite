@@ -36,6 +36,10 @@ export function useLeafletMap(id="map", options: InitMapOptions, showRoads: Ref<
     labelPane.style.zIndex = "650";
     labelPane.style.pointerEvents = "none";
     
+    const markerPane = map.value.createPane("markers");
+    markerPane.style.zIndex = "800";
+    markerPane.style.pointerEvents = "none";
+    
     // add Stadia Toner lines only
     basemap.value = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png', {
       minZoom: 0,

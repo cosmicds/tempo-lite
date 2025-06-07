@@ -16,7 +16,7 @@ export function useLocationMarker( map: Ref<Map | null>, show: boolean) {
   
   function setMarker(latlng: L.LatLngExpression) {
     if (locationMarker.value == null) {
-      locationMarker.value = new L.Marker(latlng, { icon: icon, pane: 'labels', opacity: 0.8 });
+      locationMarker.value = new L.Marker(latlng, { icon: icon, pane: 'markers', opacity: 0.8 });
     } else {
       locationMarker.value.setLatLng(latlng);
     }
