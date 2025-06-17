@@ -33,23 +33,6 @@ export function useLeafletMap(id="map", options: InitMapOptions, onReady?: (map:
     labelPane.style.zIndex = "650";
     labelPane.style.pointerEvents = "none";
     
-    // // add Stadia Toner lines only
-    // basemap.value = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png', {
-    //   minZoom: 0,
-    //   maxZoom: 20,
-    //   attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    //   pane: 'labels'
-    // });
-    // basemap.value.addTo(map.value as Map);
-    
-    // // add Stadia Toner labels only
-    // labelmap.value = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png', {
-    //   minZoom: 0,
-    //   maxZoom: 20,
-    //   attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    //   pane: 'labels'
-    // });
-    // labelmap.value.addTo(map.value as Map);
     fetch('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/1/1/1.png').then((response) => {
       if (response.status == 200) {
         console.log('Using Stamen Toner');
