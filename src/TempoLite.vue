@@ -1356,7 +1356,7 @@ const showingExtendedRange = computed(() => {
 const onMapReady = (map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
-};  
+};
 const showRoads = ref(true);
 const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
 
@@ -1390,7 +1390,7 @@ onMounted(() => {
 
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   if (map.value !== null) {
-    imageOverlay.addTo(map.value);
+    imageOverlay.addTo(map.value); 
     cloudOverlay.addTo(map.value);
   }
 
@@ -3068,6 +3068,10 @@ div.callout-wrapper {
   100% {
     transform: scale(1);
   }
+}
+
+canvas.maplibregl-canvas {
+  background-color: whitesmoke;
 }
 </style>
   

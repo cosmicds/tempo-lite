@@ -1,7 +1,8 @@
 
 // Types
 
-
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type LocationOrderedPair<T extends string> = [number, number] & {_order: T};
@@ -11,6 +12,7 @@ export type LatLngPair = LocationOrderedPair<'(Lat,Lng)'>;
 export type LngLatPair = LocationOrderedPair<'(Lng,Lat)'>;
 
 export type MappingBackends = 'leaflet' | 'maplibre';
+
 
 export interface InitMapOptions {
   loc: LatLngPair,
@@ -37,6 +39,21 @@ export interface InterestingEvent {
   }
   
 import L from 'leaflet';
+import M from 'maplibre-gl';
+import { Ref, toValue } from 'vue';
+
+export type MapType<T extends MappingBackends> = 
+  T extends 'leaflet' ? L.Map :
+  T extends 'maplibre' ? M.Map :
+  never;
+
+export function isLeaflet<T extends MappingBackends>(backend: Ref<T> | T, map: unknown): map is MapType<'leaflet'> {
+  return toValue(backend) === 'leaflet' && toValue(map) instanceof L.Map;
+}
+export function isMaplibre<T extends MappingBackends>(backend: Ref<T> | T, map: unknown): map is MapType<'maplibre'> {
+  return toValue(backend) === 'maplibre' && toValue(map) instanceof M.Map;
+}
+
 export class LatLng extends L.LatLng {
   constructor(lat: number, lng: number) {
     super(lat, lng);
