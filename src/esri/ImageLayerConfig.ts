@@ -22,7 +22,7 @@ interface RasterFunctionObject {
 
 // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/
 // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/#resample
-const _stretchRule: RasterFunctionObject = {
+export const _stretchRule: RasterFunctionObject = {
   'rasterFunction': 'Stretch',
   'outputPixelType': 'U8' as PixelType, 
   'variableName': 'Raster',
@@ -42,7 +42,7 @@ const _stretchRule: RasterFunctionObject = {
   },
 };
   
-const _colorMapRule: RasterFunctionObject = {
+export const _colorMapRule: RasterFunctionObject = {
   'rasterFunction': 'Colormap',
   'variableName': 'Raster',
   'rasterFunctionArguments': {
@@ -50,7 +50,7 @@ const _colorMapRule: RasterFunctionObject = {
   },
 };
 
-const _resampleRule: RasterFunctionObject =  {
+export const _resampleRule: RasterFunctionObject =  {
   'rasterFunction': 'Resample',
   'variableName': 'Raster',
   'rasterFunctionArguments': {
