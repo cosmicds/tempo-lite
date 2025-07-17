@@ -954,7 +954,7 @@ import { usezoomhome} from './composables/leaflet/useZoomHome';
 import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
-import { useEsriLayer } from "./esri/leaflet/useEsriImageLayer";
+// import { useEsriLayer } from "./esri/leaflet/useEsriImageLayer";
 const zoomScale = 1; 
 
 // Import maplibre Composables
@@ -964,6 +964,7 @@ const zoomScale = 1;
 // import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
 // import { useLocationMarker } from "./composables/maplibre/useMarker";
 // import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
+// import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 // const zoomScale = 0.5; // for matplibre-gl
 
 
@@ -1301,7 +1302,7 @@ const imageName = computed(() => {
   return getTempoFilename(date.value);
 });
 
-const showImage = ref(false);
+const showImage = ref(true);
 const imageUrl = computed(() => {
   if (!showImage.value) {
     return '';
@@ -1369,13 +1370,13 @@ const showingExtendedRange = computed(() => {
 });
 
 
-const {getEsriTimeSteps, addEsriSource} = useEsriLayer(
-  "https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer",
-  "NO2_Troposphere",
-  timestamp,
-  opacity,
-);
-getEsriTimeSteps();
+// const {getEsriTimeSteps, addEsriSource} = useEsriLayer(
+//   "https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer",
+//   "NO2_Troposphere",
+//   timestamp,
+//   opacity,
+// );
+// getEsriTimeSteps();
   
   
 
@@ -1383,7 +1384,7 @@ getEsriTimeSteps();
 const onMapReady = (map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
-  addEsriSource(map);
+  // addEsriSource(map);
 };
 const showRoads = ref(true);
 const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
