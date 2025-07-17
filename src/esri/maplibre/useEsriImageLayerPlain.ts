@@ -1,8 +1,8 @@
 import { ref, watch, Ref, MaybeRef, toRef, nextTick } from 'vue';
-import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames } from '../ImageLayerConfig';
+import { fetchEsriTimeSteps, extractTimeSteps, VariableNames, _stretchRule, _colorMapRule, composeRasterRules } from '../ImageLayerConfig';
 import { Map } from 'maplibre-gl';
 
-import { ImageService } from 'mapbox-gl-esri-sources';
+// import { ImageService } from 'mapbox-gl-esri-sources';
 
 
 interface UseEsriLayer {
@@ -35,7 +35,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     'imageSR': 3857,
     'bbox': '{bbox-epsg-3857}',
     'interpolation': 'RSP_NearestNeighbor',
-    'renderingRule': renderingRule,
+    'renderingRule': encodeURIComponent(JSON.stringify(composeRasterRules(_stretchRule, [_colorMapRule]))),
   };
   const _esriImageOptions = Object.entries(options).map(([key, value]) => `${key}=${value}`).join('&');
   
@@ -60,28 +60,25 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     }
   }
   
-  const dynamicMapService = ref<ImageService | null>(null);
+  // const dynamicMapService = ref<ImageService | null>(null);
       
   
   function addEsriSource(_map: Map) {
     if (!_map) return;
     map.value = _map;
     
-    dynamicMapService.value = new ImageService(
-      esriLayerId,
-      _map,
-      {
-        url: url,
-        ...options
-      },
-      {
-        tileSize: 256,
-      }
-    );
+    _map.addSource(esriLayerId, {
+      type: 'raster',
+      tiles: [
+        `${url}/exportImage?f=image&${_esriImageOptions}`,
+      ],
+      tileSize: 256,
+    });
 
 
     
     addLayer(_map);
+    esriImageSource.value = _map.getSource(esriLayerId) as  maplibregl.RasterTileSource;
   }
   
 
@@ -100,11 +97,12 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
       console.error('No ESRI data available for the selected time');
     }
 
-    if (dynamicMapService.value && !noEsriData.value) {
-      dynamicMapService.value.setDate(new Date(nearest), new Date(nearest * 2));
+    if (esriImageSource.value && !noEsriData.value) {
+      const newUrl = `${url}/exportImage?f=image&${_esriImageOptions}&time=${nearest}`;
+      esriImageSource.value.setTiles([newUrl]);
     } else if (!noEsriData.value) {
       // if there is esri coverage, then this is the issue
-      console.error('Dynamic Map Service is not initialized');
+      console.error('esriImageSource is not initialized');
     }
   }
   
