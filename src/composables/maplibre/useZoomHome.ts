@@ -18,7 +18,6 @@ export function usezoomhome(map: Ref<Map | null>, home: LatLngPair, zoom: number
   
   
   if (map.value !== null) {
-    console.log('adding to map witohut watch', map.value);
     map.value.addControl(new NavigationControl({showCompass: false}), 'top-left');
     zoomHome.value = createControl();
     map.value.addControl(zoomHome.value, 'top-left');
@@ -26,7 +25,6 @@ export function usezoomhome(map: Ref<Map | null>, home: LatLngPair, zoom: number
   
   watch(map, (newValue) => {
     if (newValue !== null) {
-      console.log('adding to map with watch');
       newValue.addControl(new NavigationControl({showCompass: false}), 'top-left');
       zoomHome.value = createControl();
       newValue.addControl(zoomHome.value, 'top-left');

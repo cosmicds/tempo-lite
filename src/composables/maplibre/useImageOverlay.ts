@@ -76,14 +76,11 @@ export function useImageOverlay(
   }
   
   function addTo(map: M.Map) {
-    console.log("add to", overlayId);
     map.on('style.load', () => {
-      console.log(`adding overlay ${overlayId} to map`);
       const source = addSource(map);
       addLayer(map);
       
       if (source !== undefined) {
-        console.log(`overlay ${overlayId} added to map`);
         overlay.value = source as M.ImageSource;
         configureOverlay();
       }
@@ -120,7 +117,6 @@ export function useImageOverlay(
   
   function configureOverlay() {
     if (overlay.value) {
-      console.log(`configuring overlay ${overlayId}`);
       overlay.value.map.setPaintProperty(overlayId, 'raster-fade-duration', 0);
     }
   }

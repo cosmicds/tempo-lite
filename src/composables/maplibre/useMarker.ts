@@ -17,17 +17,13 @@ export function useLocationMarker( map: Ref<M.Map | null>, show: boolean): Mapli
   
   
   const addToMap = () => {
-    console.log('in add to map');
     if (locationMarker.value !== null && map.value !== null) {
-      console.log('adding to map');
       locationMarker.value.addTo(map.value);
     }
   };
   
   function setMarker(latlng: LatLngPair) {
-    console.log('setting maker');
     if (!map.value) return ;
-    console.log('really setting maker');
     
     const lnglat = [latlng[1], latlng[0]] as M.LngLatLike;
     

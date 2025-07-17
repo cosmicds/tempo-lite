@@ -26,7 +26,6 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
   
   
   async function addCoastlines(map: M.Map) {
-    console.log(`adding coastlines to map ${id}`);
     fetch("coastlines.geojson")
       .then(response => response.json())
       .then(data => {
@@ -66,7 +65,6 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
   
   function setupMap() {
     if (map.value === null) return;
-    console.log(`setting up map ${id}`);
     
     // Need to use weird type assertion to avoid
     // Type instantiation is excessively deep and possibly infinite.ts(2589)
@@ -109,10 +107,10 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
   //   zoom: options.zoom ?? 1 // starting zoom
   // }  
   function createMap(): Ref<M.Map> {
-    console.log(`creating map ${id}`);
     const _map = new M.Map({
       container: id,
-      style: 'https://tiles.openfreemap.org/styles/liberty', // style URL
+      // style: 'https://tiles.openfreemap.org/styles/liberty', // style URL
+      style: 'https://demotiles.maplibre.org/style.json',
       center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
       zoom: options.zoom ?? 1, // starting zoom,
       attributionControl: false

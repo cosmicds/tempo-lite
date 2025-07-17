@@ -947,11 +947,9 @@ import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 // Import Leaflet Composables
-import { useMap } from "./composables/leaflet/useMap";
-import { usezoomhome} from './composables/leaflet/useZoomHome';
-import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
-import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
-import { useLocationMarker } from "./composables/leaflet/useMarker";
+const zoomScale = 1; 
+
+// const zoomScale = 0.5; // for matplibre-gl
 
 
 const display = useDisplay();
@@ -1237,7 +1235,7 @@ updateTimestamps().then(() => { timestampsLoaded.value = true; })
 
 const initLat = parseFloat(urlParams.get("lat") || '40.044');
 const initLon = parseFloat(urlParams.get("lon") || '-98.789');
-const initZoom = parseFloat(urlParams.get("zoom") || '4');
+const initZoom = parseFloat(urlParams.get("zoom") || `${4 * zoomScale}`); // 4 is the default zoom level for the map, multiplied by zoomScale for maplibre
 const initTime = urlParams.get("t");
 const initState = ref<InitMapOptions>({
   loc: [initLat, initLon] as LatLngPair,
@@ -1248,7 +1246,7 @@ const initState = ref<InitMapOptions>({
 
 const homeLat = 40.044;
 const homeLon = -98.789;
-const homeZoom = 4;
+const homeZoom = 4 * zoomScale; // 4 is the default zoom level for the map, multiplied by zoomScale for maplibre
 const homeState = ref({
   loc: [homeLat, homeLon] as LatLngPair,
   zoom: homeZoom,
@@ -1637,7 +1635,7 @@ function goToLocationOfInterst(index: number, subindex: number) {
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
-  setView(loi.latlng, loi.zoom);
+  setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
   if (loi.index !== undefined) {
     timeIndex.value = loi.index;
   } else {
@@ -1651,7 +1649,7 @@ function goToLA() {
   const event = interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
   if (event !== undefined && map.value) {
     const loi = event[0].locations;
-    setView(loi[0].latlng, loi[0].zoom);
+    setView(loi[0].latlng, loi[0].zoom * zoomScale); // Adjust zoom level for maplibre
   }
 }
 
