@@ -946,7 +946,14 @@ import { interestingEvents } from "./interestingEvents";
 import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
+
+
 // Import Leaflet Composables
+import { useMap } from "./composables/leaflet/useMap";
+import { usezoomhome} from './composables/leaflet/useZoomHome';
+import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
+import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
+import { useLocationMarker } from "./composables/leaflet/useMarker";
 const zoomScale = 1; 
 
 // const zoomScale = 0.5; // for matplibre-gl
