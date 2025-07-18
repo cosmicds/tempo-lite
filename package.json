@@ -11,8 +11,10 @@
     "@wwtelescope/engine-pinia": "^0.9.0",
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.1.3",
+    "esri-leaflet": "^3.0.17",
     "leaflet": "^1.9.4",
     "leaflet.zoomhome": "^1.0.0",
+    "mapbox-gl-esri-sources": "^0.0.7",
     "maplibre-gl": "^5.5.0",
     "uuid": "^11.1.0",
     "vue": "^3.4.15",
@@ -20,6 +22,7 @@
     "webpack-plugin-vuetify": "^2.0.0"
   },
   "devDependencies": {
+    "@types/esri-leaflet": "^3.0.3",
     "@types/leaflet": "^1.9.11",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
