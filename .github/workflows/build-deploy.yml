@@ -73,17 +73,17 @@ jobs:
           mv dist deployment/${folder}
           [[ "$BRANCH" == "dev" ]] && other="main" || other="dev"
           echo "Other branch: ${other}"
-          echo "${other}" >> "$GITHUB_OUTPUT"
+          echo "other=${other}" >> "$GITHUB_OUTPUT"
 
       - name: Check out the other branch
         uses: actions/checkout@v3
         with:
-          ref: ${{ steps.prepare.outputs }}
+          ref: ${{ steps.prepare.outputs.other }}
           path: other
 
       - name: Build other branch and move to deployment
         env:
-          BRANCH: ${{ steps.prepare.outputs }}
+          BRANCH: ${{ steps.prepare.outputs.other }}
         run: |
           cd other
           yarn install
