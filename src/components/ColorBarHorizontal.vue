@@ -73,7 +73,7 @@ export default defineComponent({
   
   mounted() {
     this.colorbarGradient();
-    console.log(this.$el);
+    // console.log(this.$el);
   },
   
   computed: {
