@@ -69,8 +69,9 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     // Need to use weird type assertion to avoid
     // Type instantiation is excessively deep and possibly infinite.ts(2589)
     // See discussion here https://github.com/mapbox/mapbox-gl-js/issues/13203#issuecomment-2634013147
-    addCoastlines(map.value as unknown as M.Map);
-    addLabels(map.value as unknown as M.Map);
+    const libreMap = map.value as unknown as M.Map;
+    addCoastlines(libreMap);
+    addLabels(libreMap);
     
     
     if (onReady !== undefined) {

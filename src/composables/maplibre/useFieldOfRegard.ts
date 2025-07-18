@@ -7,7 +7,7 @@ import augustFieldOfRegard from "@/assets/august_for.json";
 
 import M from 'maplibre-gl';
 
-interface MaplibreFieldOfRegardComposable {
+export interface MaplibreFieldOfRegardComposable {
   addFieldOfRegard: () => void;
   showFieldOfRegard: Ref<boolean>;
   updateFieldOfRegard: () => void;

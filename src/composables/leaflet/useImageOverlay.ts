@@ -53,6 +53,6 @@ export function useImageOverlay(
     }
   });
   
-  return { overlay, addTo};
+  return { overlay, addTo };
 
 }

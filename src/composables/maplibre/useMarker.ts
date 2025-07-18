@@ -3,7 +3,7 @@ import M, {Marker} from 'maplibre-gl';
 import { LatLngPair } from '@/types';
 
 
-interface MaplibreLocationMarker {
+export interface MaplibreLocationMarker {
   locationMarker: Ref<M.Marker | null>;
   setMarker: (latlng: LatLngPair) => void;
   removeMarker: () => void;
