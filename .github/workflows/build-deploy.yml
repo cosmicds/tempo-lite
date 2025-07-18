@@ -89,7 +89,7 @@ jobs:
           yarn install
           yarn build
           [[ "$BRANCH" == "dev" ]] && folder="dev" || folder="."
-          mv dist ../deployment/${folder}
+          mv dist/* ../deployment/${folder}
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
