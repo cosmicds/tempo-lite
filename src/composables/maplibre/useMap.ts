@@ -75,7 +75,7 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     
     
     if (onReady !== undefined) {
-      onReady(map.value as unknown as M.Map);
+      onReady(libreMap);
     }
   }
 
