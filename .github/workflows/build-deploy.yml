@@ -72,7 +72,7 @@ jobs:
           echo "Current branch: ${BRANCH}"
           [[ "$BRANCH" == "dev" ]] && folder="dev" || folder="."
           echo "Folder to use: ${folder}"
-          mv dist deployment/${folder}
+          mv dist/* deployment/${folder}
           [[ "$BRANCH" == "dev" ]] && other="main" || other="dev"
           echo "Other branch: ${other}"
           echo "other=${other}" >> "$GITHUB_OUTPUT"
