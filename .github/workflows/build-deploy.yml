@@ -67,7 +67,9 @@ jobs:
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
+          echo "$BRANCH"
           [[ "$BRANCH" == "dev" ]] && folder="dev" || folder="."
+          echo "$folder"
           mv dist deployment/${folder}
           [[ "$BRANCH" == "dev" ]] && other="main" || other="dev"
           echo "${other}" >> "$GITHUB_OUTPUT"
