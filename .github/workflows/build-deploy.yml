@@ -70,7 +70,7 @@ jobs:
           [[ "$BRANCH" == "dev" ]] && folder="dev" || folder="."
           mv dist deployment/${folder}
           [[ "$BRANCH" == "dev" ]] && other="main" || other="dev"
-          echo ${other} >> "$GITHUB_OUTPUT"
+          echo "${other}" >> "$GITHUB_OUTPUT"
 
       - name: Check out the other branch
         uses: actions/checkout@v3
