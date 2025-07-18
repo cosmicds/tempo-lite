@@ -3,7 +3,8 @@ name: Build
 on:
   pull_request_target:
     branches:
-      main
+      - main
+      - dev
 
 permissions: read-all
 
