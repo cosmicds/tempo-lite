@@ -26,6 +26,7 @@ export function _preloadImages(images: string[]): Promise<HTMLElement>[] {
     img.remove();
   });
   preloadedImages = [];
+  // console.log("preloading images:", images);
   const promises = images.map((src) => loadImage(src));
   // Promise.all(promises);
   return promises;

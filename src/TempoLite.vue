@@ -1378,7 +1378,26 @@ const showingExtendedRange = computed(() => {
 // );
 // getEsriTimeSteps();
   
-  
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import {  test, getAggregatedSamples} from "./esri/esriGetSamples";
+test(); // a single point test
+// const loadingSamples = ref('false');
+
+// loadingSamples.value = 'loading';
+// getAggregatedSamples(
+//   'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
+//   "NO2_Troposphere",
+//   {x: -98.789, y: 40.044}, // home location
+//   new Date('2025-07-19T00:00:00Z').getTime(), // Setting the date because the server is a day or two behind
+//   new Date('2025-07-20T00:00:00Z').getTime()
+// ).then((samples) => {
+//   console.log("Samples:", samples);
+//   loadingSamples.value = 'finished';
+// }).catch((error) => {
+//   console.error("Error fetching samples:", error);
+//   loadingSamples.value = 'error';
+// });
 
 
 const onMapReady = (map) => {
@@ -1927,6 +1946,7 @@ watch(imageUrl, (_url: string) => {
 
 watch(useHighRes, () => {
   hiResDataToggled = true;
+  console.log("useHighRes imagePreload");
   imagePreload();
 });
 
@@ -1981,6 +2001,7 @@ watch(singleDateSelected, (value: Date) => {
     const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
     radio.value = index < 0 ? null : index;
   }
+  console.log("singleDataeSelected imagePreload");
   imagePreload();
 });
 
@@ -1999,6 +2020,7 @@ watch(showChanges, (_value: boolean) => {
 
 watch(showExtendedRange, (_value: boolean) => {
   updateURL();
+  console.log("showExtendedRange imagePreload");
   imagePreload();
 });
 
