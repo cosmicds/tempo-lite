@@ -86,6 +86,8 @@ jobs:
       - name: Build other branch and move to deployment
         env:
           BRANCH: ${{ steps.prepare.outputs.other }}
+          VUE_APP_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          VUE_APP_CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
         run: |
           cd other
           yarn install
