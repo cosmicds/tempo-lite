@@ -12,11 +12,26 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background-color: rgb(var(--v-theme-success));
   color: white;
   z-index: 9999;
 }
 
+.cds-marquee-alert.success
+{
+  background-color: rgb(var(--v-theme-success));
+}
+.cds-marquee-alert.error
+{
+  background-color: rgb(var(--v-theme-error));
+}
+.cds-marquee-alert.warning
+{
+  background-color: rgb(var(--v-theme-warning));
+}
+.cds-marquee-alert.info
+{
+  background-color: rgb(var(--v-theme-info));
+}
 .cds-marquee-alert__content
 {
   line-height: 1.5;
@@ -30,8 +45,8 @@
 </style>
 
 <template>
-  <div v-if="isVisible" class="cds-marquee-alert elevation-3 sucess">
-    <v-avatar variant="flat" color="info" icon="mdi-exclamation-thick" />
+  <div v-if="isVisible" :class="['cds-marquee-alert', 'elevation-3', type]">
+    <v-avatar variant="flat" :color="type" :icon="icon" />
     <div class="cds-marquee-alert__content">
       <slot>
         <span>{{ message }}</span>
@@ -44,9 +59,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, PropType } from 'vue';
 
-
+type StatusType = 'success' | 'error' | 'warning' | 'info';
 export default defineComponent({
   name: 'MarqueeAlert',
 
@@ -62,14 +77,34 @@ export default defineComponent({
     },
     timeout: {
       type: Number,
-      default: 5000
-    }
+      required: false,
+      default: null
+    },
+    icon: {
+      type: String,
+      default: 'mdi-exclamation-thick'
+    },
+    type: {
+      type: String as PropType<StatusType>,
+      default: 'success'
+    },
+    disabled: {
+      type: Boolean,
+      default: false
+    },
   },
   
   mounted() {
-    setTimeout(() => {
+    if (this.disabled) {
       this.isVisible = false;
-    }, this.timeout);
+      return;
+    }
+    
+    if (this.timeout !== null) {
+      setTimeout(() => {
+        this.isVisible = false;
+      }, this.timeout);
+    }
   },
 
   data() {

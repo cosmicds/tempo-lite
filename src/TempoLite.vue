@@ -169,6 +169,18 @@
     message="You can view data with an extend range for the 
             duration of the LA fires. See the 🔥 button on the map"
     />
+  <!-- add an alert if the last timestamps is more than 2 days behind -->
+  <marquee-alert
+    style="font-size:0.8em; gap: 0.25em;"
+    icon="mdi-alert"
+    type="error"
+    timeout="10000"
+    disabled
+    v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
+    >
+    The last available data is from {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }}. 
+            The processed data presented her is normally updated daily. Please check <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's TEMPO page</a> for more information.
+    </marquee-alert>
     <div class="content-with-sidebars">
       <!-- tempo logo -->
       <div id="logo-title">
