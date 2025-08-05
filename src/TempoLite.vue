@@ -532,7 +532,7 @@
 
       </div>
         <div id="when" class="big-label">when</div>
-        <div id="slider-row">
+        <div v-if="maxIndex > minIndex" id="slider-row">
           <v-slider
             class="time-slider"
             v-model="timeIndex"
@@ -558,6 +558,14 @@
             fa-size="sm"
             @activate="playing = !playing"
           ></icon-button>
+        </div>
+        <div v-else id="slider-row">
+          <v-alert type="warning" icon="mdi-clock">
+          Only one date/time available for the selected date: {{ new Date(timestamp).toLocaleString(
+            'en-US',
+            { timeZone: selectedTimezone, dateStyle: 'medium', timeStyle: 'short' }
+          ) }} ({{ selectedTimezone }})
+          </v-alert>
         </div>
 
         

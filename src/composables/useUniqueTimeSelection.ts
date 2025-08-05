@@ -34,7 +34,11 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
     const mod = getOneDaysTimestamps(new Date(date));
     if (mod.length > 0) {
       minIndex.value = mod[0].idx;
-      maxIndex.value = mod[mod.length - 1].idx;
+      if (mod.length  == 1) {
+        maxIndex.value = minIndex.value;
+      } else {
+        maxIndex.value = mod[mod.length - 1].idx;   
+      }
       timeIndex.value = minIndex.value;
     } else {
       console.warn("No timestamps found for the given date.");
