@@ -16,6 +16,10 @@
   z-index: 9999;
 }
 
+.cds-marquee-alert a {
+  color: #fff3cd;
+}
+
 .cds-marquee-alert.success
 {
   background-color: rgb(var(--v-theme-success));

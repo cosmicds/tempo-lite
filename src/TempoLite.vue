@@ -171,15 +171,13 @@
     />
   <!-- add an alert if the last timestamps is more than 2 days behind -->
   <marquee-alert
-    style="font-size:0.8em; gap: 0.25em;"
-    icon="mdi-alert"
+    style="font-size:0.9em; gap: 1em;"
+    icon="mdi-calendar-alert"
     type="error"
-    timeout="10000"
-    disabled
+
     v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
     >
-    The last available data is from {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }}. 
-            The processed data presented her is normally updated daily. Please check <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's TEMPO page</a> for more information.
+    {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }} is the latest date with available data. See <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's EarthData website</a> for more information.
     </marquee-alert>
     <div class="content-with-sidebars">
       <!-- tempo logo -->
