@@ -582,7 +582,36 @@
 
         <div id="user-options">
         <div id="all-dates">
-          <h2>Select a Date</h2>  
+          <h2>
+          Select a Date
+            <!-- warning about data being out of date -->
+            <add-closable
+              size="small"
+              :color="accentColor2"
+              variant="tonal"
+              translate-x="40%"
+              tooltip="Hide alert"
+            >
+              
+            <v-tooltip
+              v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
+              :disabled="touchscreen"
+              text="Data is more than 2 days old"
+              location="right"
+              open-on-click
+              open-on-focus
+              open-on-hover
+            >
+              <template v-slot:activator="{ props }">
+                <v-icon
+                  v-bind="props"
+                  color="error"
+                >mdi-alert-outline</v-icon>
+                
+              </template>
+            </v-tooltip>
+            </add-closable>
+          </h2>  
           <div class="d-flex flex-row align-center">
             <v-radio-group v-model="radio">
               <date-picker
@@ -951,6 +980,7 @@
 import { ref, computed, watch, onMounted, nextTick, ComputedRef } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
+import AddClosable from "./components/AddClosable.vue";
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { v4 } from "uuid";
 import { getTimezoneOffset } from "date-fns-tz";
