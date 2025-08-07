@@ -569,13 +569,33 @@
             @activate="playing = !playing"
           ></icon-button>
         </div>
-        <div v-else id="slider-row">
-          <v-alert type="warning" icon="mdi-clock">
+        <div v-else  id="slider-row">
+          <v-slider
+            class="time-slider hide-first-last-ticks"
+            v-model="timeIndex"
+            :min="minIndex - 0.5"
+            :max="minIndex + 1.5"
+            :step="1"
+            color="#068ede95"
+            thumb-label="always"
+            :track-size="10"
+            show-ticks="always"
+            hide-details
+            disabled
+            @end="onTimeSliderEnd"
+          >
+          <template v-slot:thumb-label>
+              <div class="thumb-label">
+                {{ thumbLabel }}
+              </div>
+            </template>
+          </v-slider>
+          <!-- <v-alert type="warning" icon="mdi-clock">
           Only one date/time available for the selected date: {{ new Date(timestamp).toLocaleString(
             'en-US',
             { timeZone: selectedTimezone, dateStyle: 'medium', timeStyle: 'short' }
           ) }} ({{ selectedTimezone }})
-          </v-alert>
+          </v-alert> -->
         </div>
 
         
@@ -2730,6 +2750,17 @@ a {
       border-top: 6px solid currentColor;
       bottom: -15px;
     }
+  }
+}
+
+.time-slider.hide-first-last-ticks.v-input--disabled {
+    .v-slider__container {
+      opacity: 100 !important;
+    }
+    
+    .v-slider-track__tick--first,
+    .v-slider-track__tick--last {
+      display: none;
   }
 }
 
