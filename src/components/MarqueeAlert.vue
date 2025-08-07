@@ -1,7 +1,7 @@
 <style>
 .cds-marquee-alert
 {
-  position: sticky;
+  position: static;
   top: 0;
   left: 0;
   /* width: 100vw; */
@@ -14,6 +14,15 @@
   gap: 1rem;
   color: white;
   z-index: 9999;
+}
+.cds-marquee-alert--sticky
+{
+  position: sticky;
+}
+
+.cds-marquee-alert--fixed
+{
+  position: fixed;
 }
 
 .cds-marquee-alert a {
@@ -49,7 +58,7 @@
 </style>
 
 <template>
-  <div v-if="isVisible" :class="['cds-marquee-alert', 'elevation-3', type]">
+  <div v-if="isVisible" :class="['cds-marquee-alert', 'elevation-3', type, { 'cds-marquee-alert--sticky': sticky }, { 'cds-marquee-alert--fixed': fixed }]">
     <v-avatar variant="flat" :color="type" :icon="icon" />
     <div class="cds-marquee-alert__content">
       <slot>
@@ -96,6 +105,14 @@ export default defineComponent({
       type: Boolean,
       default: false
     },
+    sticky: {
+      type: Boolean,
+      default: false
+    },
+    fixed: {
+      type: Boolean,
+      default: false
+    }
   },
   
   mounted() {
