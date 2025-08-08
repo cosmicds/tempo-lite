@@ -1190,8 +1190,6 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  * TIMESTAMP SETUP
  ************/
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
-import { da } from "vuetify/lib/locale";
-import { min } from "date-fns";
 
 const erdTimestamps = ref<number[]>([]);
 const newTimestamps = ref<number[]>([]);
