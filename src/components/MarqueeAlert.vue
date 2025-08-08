@@ -20,9 +20,14 @@
   position: sticky;
 }
 
-.cds-marquee-alert--fixed
+.cds-marquee-alert--fixed 
 {
   position: fixed;
+  /* Horizontaly center a position fixed element */
+  width: 90%; /* width does not need to be set */
+  left: 50%;
+  transform: translateX(-50%) translateY(50%);
+  /* add top: 50% tp center vertically */
 }
 
 .cds-marquee-alert a {
@@ -58,7 +63,8 @@
 </style>
 
 <template>
-  <div v-if="isVisible" :class="['cds-marquee-alert', 'elevation-3', type, { 'cds-marquee-alert--sticky': sticky }, { 'cds-marquee-alert--fixed': fixed }]">
+  <v-fade-transition>
+  <div v-show="isVisible" :class="['cds-marquee-alert', 'elevation-3', type, { 'cds-marquee-alert--sticky': sticky }, { 'cds-marquee-alert--fixed': fixed }]">
     <v-avatar variant="flat" :color="type" :icon="icon" />
     <div class="cds-marquee-alert__content">
       <slot>
@@ -69,6 +75,7 @@
       Close
     </v-btn>
   </div>
+  </v-fade-transition>
 </template>
 
 <script lang="ts">
@@ -121,22 +128,25 @@ export default defineComponent({
       return;
     }
     
-    if (this.timeout !== null) {
-      setTimeout(() => {
-        this.isVisible = false;
-      }, this.timeout);
-    }
+    this.addTimeout();
   },
 
   data() {
     return {
-      isVisible: true,
+      isVisible: this.modelValue,
     };
   },
 
   methods: {
     close() {
       this.isVisible = false;
+    },
+    addTimeout() {
+      if (this.timeout !== null) {
+        setTimeout(() => {
+          this.isVisible = false;
+        }, this.timeout);
+      }
     }
   },
 
@@ -147,6 +157,9 @@ export default defineComponent({
 
     modelValue(value) {
       this.isVisible = value;
+      if (value) {
+        this.addTimeout();
+      }
     }
   }
 
