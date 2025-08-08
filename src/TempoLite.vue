@@ -579,6 +579,23 @@
               }"
           >
           </icon-button>
+          <v-snackbar
+            v-model="showSinglePointWarning"
+            :timeout="5000"
+            color="error"
+            location="bottom"
+            >
+            <span>Only a single time is available for this date</span>
+            <template v-slot:actions>
+              <v-btn
+                color="black"
+                variant="text"
+                @click="showSinglePointWarning = false"
+              >
+                Close
+              </v-btn>
+            </template>
+          </v-snackbar>
         </div>
 
         <div id="user-options">
