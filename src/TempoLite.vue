@@ -543,9 +543,10 @@
 
       </div>
         <div id="when" class="big-label">when</div>
-        <div v-if="maxIndex > minIndex" id="slider-row">
+        <div id="slider-row">
           <v-slider
-            class="time-slider"
+            :class='["time-slider", maxIndex <= minIndex ? "hide-first-last-ticks" : ""]'
+            :disabled="maxIndex <= minIndex"
             v-model="timeIndex"
             :min="minIndex"
             :max="maxIndex"
@@ -566,40 +567,19 @@
           <icon-button
             id="play-pause"
             :fa-icon="playing ? 'pause' : 'play'"
+            :tooltip-text="minIndex >= maxIndex ? 'Only one time is availabe for this day' : ''"
+            tooltip-location="bottom"
             fa-size="sm"
-            @activate="playing = !playing"
-          ></icon-button>
-        </div>
-        <div v-else  id="slider-row">
-          <v-slider
-            class="time-slider hide-first-last-ticks"
-            v-model="timeIndex"
-            :min="minIndex - 0.5"
-            :max="minIndex + 1.5"
-            :step="1"
-            color="#068ede95"
-            thumb-label="always"
-            :track-size="10"
-            show-ticks="always"
-            hide-details
-            disabled
-            @end="onTimeSliderEnd"
+            @activate="() => {
+              if (maxIndex <= minIndex) {
+                handlePlayWithoutData();
+                return;
+              } 
+              playing = !playing
+              }"
           >
-          <template v-slot:thumb-label>
-              <div class="thumb-label">
-                {{ thumbLabel }}
-              </div>
-            </template>
-          </v-slider>
-          <!-- <v-alert type="warning" icon="mdi-clock">
-          Only one date/time available for the selected date: {{ new Date(timestamp).toLocaleString(
-            'en-US',
-            { timeZone: selectedTimezone, dateStyle: 'medium', timeStyle: 'short' }
-          ) }} ({{ selectedTimezone }})
-          </v-alert> -->
+          </icon-button>
         </div>
-
-        
 
         <div id="user-options">
         <div id="all-dates">
@@ -1195,6 +1175,7 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  ************/
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 import { da } from "vuetify/lib/locale";
+import { min } from "date-fns";
 
 const erdTimestamps = ref<number[]>([]);
 const newTimestamps = ref<number[]>([]);
@@ -1632,6 +1613,13 @@ function pause() {
   }
 }
 
+const showSinglePointWarning = ref(false);
+function handlePlayWithoutData() {
+  console.log('No data available for the selected time. Please select a different time.');
+  playing.value = false;
+  pause();
+  showSinglePointWarning.value = true;
+}
 
 function getCloudFilename(date: Date): string {
   const filename = getTempoFilename(date);
