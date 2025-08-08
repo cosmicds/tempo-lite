@@ -171,13 +171,14 @@
     />
   <!-- add an alert if the last timestamps is more than 2 days behind -->
   <marquee-alert
+    v-model="dataLagWarning"
     style="font-size:0.9em; gap: 1em;"
     icon="mdi-calendar-alert"
     type="error"
-
-    v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
-    >
-    {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }} is the latest date with available data. See <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's EarthData website</a> for more information.
+    timeout="1000"
+    fixed
+  >
+    {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }} is the latest date with available data. See <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's EarthData website</a> and <a href="https://github.com/Smithsonian/TEMPO-Observations-log/blob/main/daily_log.md"  target="_blank" rel="noopener noreferrer">TEMPO Observing Log</a> for more information.
     </marquee-alert>
     <div class="content-with-sidebars">
       <!-- tempo logo -->
@@ -605,32 +606,28 @@
           <h2>
           Select a Date
             <!-- warning about data being out of date -->
-            <add-closable
-              size="small"
-              :color="accentColor2"
-              variant="tonal"
-              translate-x="40%"
-              tooltip="Hide alert"
-            >
-              
             <v-tooltip
               v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
               :disabled="touchscreen"
               text="Data is more than 2 days old"
               location="right"
-              open-on-click
               open-on-focus
               open-on-hover
             >
               <template v-slot:activator="{ props }">
-                <v-icon
+                <v-btn
                   v-bind="props"
                   color="error"
-                >mdi-alert-outline</v-icon>
+                  @click="() => dataLagWarning = !dataLagWarning"
+                  @keyup.enter="() => dataLagWarning = !dataLagWarning"
+                  icon="mdi-calendar-alert"
+                  variant="tonal"
+                  size="small"
+                  ripple
+                ></v-btn>
                 
               </template>
             </v-tooltip>
-            </add-closable>
           </h2>  
           <div class="d-flex flex-row align-center">
             <v-radio-group v-model="radio">
@@ -1132,6 +1129,7 @@ let fieldOfRegardToggled = false;
 let cloudMaskToggled = false;
 let hiResDataToggled = false;
 
+
 let userSelectedCalendarDates: number[] = [];
 let userSelectedTimezones: string[] = [];
 let userSelectedLocations: string[] = [];
@@ -1196,6 +1194,7 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  * TIMESTAMP SETUP
  ************/
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
+import { da } from "vuetify/lib/locale";
 
 const erdTimestamps = ref<number[]>([]);
 const newTimestamps = ref<number[]>([]);
@@ -1355,6 +1354,7 @@ const showLocationMarker = ref(true);
 const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
 const showLADialog = ref(false);
+const dataLagWarning = ref(false);
 
 
 const imageName = computed(() => {
