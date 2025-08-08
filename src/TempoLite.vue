@@ -994,7 +994,6 @@
 import { ref, computed, watch, onMounted, nextTick, ComputedRef } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
-import AddClosable from "./components/AddClosable.vue";
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { v4 } from "uuid";
 import { getTimezoneOffset } from "date-fns-tz";
