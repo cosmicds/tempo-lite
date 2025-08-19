@@ -169,6 +169,17 @@
     message="You can view data with an extend range for the 
             duration of the LA fires. See the 🔥 button on the map"
     />
+  <!-- add an alert if the last timestamps is more than 2 days behind -->
+  <marquee-alert
+    v-model="dataLagWarning"
+    style="font-size:0.9em; gap: 1em;"
+    icon="mdi-calendar-alert"
+    type="error"
+    timeout="10000"
+    fixed
+  >
+    {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }} is the latest date with available data. See <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's EarthData website</a> and <a href="https://github.com/Smithsonian/TEMPO-Observations-log/blob/main/daily_log.md"  target="_blank" rel="noopener noreferrer">TEMPO Observing Log</a> for more information.
+    </marquee-alert>
     <div class="content-with-sidebars">
       <!-- tempo logo -->
       <div id="logo-title">
@@ -534,7 +545,8 @@
         <div id="when" class="big-label">when</div>
         <div id="slider-row">
           <v-slider
-            class="time-slider"
+            :class='["time-slider", maxIndex <= minIndex ? "hide-first-last-ticks" : ""]'
+            :disabled="maxIndex <= minIndex"
             v-model="timeIndex"
             :min="minIndex"
             :max="maxIndex"
@@ -555,16 +567,66 @@
           <icon-button
             id="play-pause"
             :fa-icon="playing ? 'pause' : 'play'"
+            :color="minIndex >= maxIndex ? '#AAAAAA' : 'var(--accent-color)'"
+            :focus-color="minIndex >= maxIndex ? '#AAAAAA' : 'var(--accent-color)'"
+            tooltip-location="bottom"
             fa-size="sm"
-            @activate="playing = !playing"
-          ></icon-button>
+            @activate="() => {
+              if (maxIndex <= minIndex) {
+                handlePlayWithoutData();
+                return;
+              } 
+              playing = !playing
+              }"
+          >
+          </icon-button>
+          <v-snackbar
+            v-model="showSinglePointWarning"
+            :timeout="5000"
+            color="error"
+            location="bottom"
+            >
+            <span style="font-weight: 600">Only one time is available for this date.</span>
+            <template v-slot:actions>
+              <v-btn
+                color="black"
+                variant="text"
+                @click="showSinglePointWarning = false"
+              >
+                <span style="font-weight: 600">Close</span>
+              </v-btn>
+            </template>
+          </v-snackbar>
         </div>
-
-        
 
         <div id="user-options">
         <div id="all-dates">
-          <h2>Select a Date</h2>  
+          <h2>
+          Select a Date
+            <!-- warning about data being out of date -->
+            <v-tooltip
+              v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
+              :disabled="touchscreen"
+              text="Data Availability Alert"
+              location="right"
+              open-on-focus
+              open-on-hover
+            >
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  color="error"
+                  @click="() => dataLagWarning = !dataLagWarning"
+                  @keyup.enter="() => dataLagWarning = !dataLagWarning"
+                  icon="mdi-calendar-alert"
+                  variant="tonal"
+                  size="default"
+                  width="35px"
+                  height="35px"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </h2>  
           <div class="d-flex flex-row align-center">
             <v-radio-group v-model="radio">
               <date-picker
@@ -1064,6 +1126,7 @@ let fieldOfRegardToggled = false;
 let cloudMaskToggled = false;
 let hiResDataToggled = false;
 
+
 let userSelectedCalendarDates: number[] = [];
 let userSelectedTimezones: string[] = [];
 let userSelectedLocations: string[] = [];
@@ -1287,6 +1350,7 @@ const showLocationMarker = ref(true);
 const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
 const showLADialog = ref(false);
+const dataLagWarning = ref(false);
 
 
 const imageName = computed(() => {
@@ -1564,6 +1628,13 @@ function pause() {
   }
 }
 
+const showSinglePointWarning = ref(false);
+function handlePlayWithoutData() {
+  console.log('No data available for the selected time. Please select a different time.');
+  playing.value = false;
+  pause();
+  showSinglePointWarning.value = true;
+}
 
 function getCloudFilename(date: Date): string {
   const filename = getTempoFilename(date);
@@ -2615,8 +2686,6 @@ a {
     padding-inline: 0.5rem;
     margin-left: 0.75rem;
     width: 2.5rem;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
   }
 
   #play-pause-button[disabled] {
@@ -2682,6 +2751,17 @@ a {
       border-top: 6px solid currentColor;
       bottom: -15px;
     }
+  }
+}
+
+.time-slider.hide-first-last-ticks.v-input--disabled {
+    .v-slider__container {
+      opacity: 100 !important;
+    }
+    
+    .v-slider-track__tick--first,
+    .v-slider-track__tick--last {
+      display: none;
   }
 }
 
