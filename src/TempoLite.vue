@@ -175,7 +175,7 @@
     style="font-size:0.9em; gap: 1em;"
     icon="mdi-calendar-alert"
     type="error"
-    timeout="1000"
+    timeout="10000"
     fixed
   >
     {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { dateStyle: 'medium' }) }} is the latest date with available data. See <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's EarthData website</a> and <a href="https://github.com/Smithsonian/TEMPO-Observations-log/blob/main/daily_log.md"  target="_blank" rel="noopener noreferrer">TEMPO Observing Log</a> for more information.
@@ -607,7 +607,7 @@
             <v-tooltip
               v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
               :disabled="touchscreen"
-              text="Data is more than 2 days old"
+              text="Data Availability Alert"
               location="right"
               open-on-focus
               open-on-hover
@@ -620,10 +620,10 @@
                   @keyup.enter="() => dataLagWarning = !dataLagWarning"
                   icon="mdi-calendar-alert"
                   variant="tonal"
-                  size="small"
-                  ripple
+                  size="default"
+                  width="35px"
+                  height="35px"
                 ></v-btn>
-                
               </template>
             </v-tooltip>
           </h2>  
