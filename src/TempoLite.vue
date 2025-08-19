@@ -567,7 +567,8 @@
           <icon-button
             id="play-pause"
             :fa-icon="playing ? 'pause' : 'play'"
-            :tooltip-text="minIndex >= maxIndex ? 'Only one time is availabe for this day' : ''"
+            :color="minIndex >= maxIndex ? '#AAAAAA' : 'var(--accent-color)'"
+            :focus-color="minIndex >= maxIndex ? '#AAAAAA' : 'var(--accent-color)'"
             tooltip-location="bottom"
             fa-size="sm"
             @activate="() => {
@@ -585,14 +586,14 @@
             color="error"
             location="bottom"
             >
-            <span>Only a single time is available for this date</span>
+            <span style="font-weight: 600">Only one time is available for this date.</span>
             <template v-slot:actions>
               <v-btn
                 color="black"
                 variant="text"
                 @click="showSinglePointWarning = false"
               >
-                Close
+                <span style="font-weight: 600">Close</span>
               </v-btn>
             </template>
           </v-snackbar>
@@ -2685,8 +2686,6 @@ a {
     padding-inline: 0.5rem;
     margin-left: 0.75rem;
     width: 2.5rem;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
   }
 
   #play-pause-button[disabled] {
