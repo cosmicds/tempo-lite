@@ -64,7 +64,10 @@ export function useMap(id="map", options: InitMapOptions, showRoads: Ref<boolean
       .then(response => response.json())
       .then(data => {
         L.geoJson(data, {
-          style: { color: "black", weight: 1, opacity: 0.8, fillColor: "#b4b4b4", fillOpacity: 0.5}
+          style: { color: "none", fillColor: "#b4b4b4", fillOpacity: 0.5, pane: 'lakes' }
+        }).addTo(map.value as L.Map);
+        L.geoJson(data, {
+          style: { color: "black", weight: 1, opacity: 0.5, fillColor: "none" }
         }).addTo(map.value as L.Map);
       });
   }
@@ -80,6 +83,10 @@ export function useMap(id="map", options: InitMapOptions, showRoads: Ref<boolean
     const markerPane = map.value.createPane("markers");
     markerPane.style.zIndex = "800";
     markerPane.style.pointerEvents = "none";
+    
+    const lakesPane = map.value.createPane("lakes");
+    lakesPane.style.zIndex = "10";
+    lakesPane.style.pointerEvents = "none";
     
     // add Stadia Toner lines only w/ fallback to CartoDB if not available
     tryTileLayerPromise(
