@@ -59,6 +59,14 @@ export function useMap(id="map", options: InitMapOptions, showRoads: Ref<boolean
           style: { color: "black", weight: 1, opacity: 0.8 }
         }).addTo(map.value as L.Map);
       });
+      
+    fetch("ne_10m_lakes_filtered.geojson")
+      .then(response => response.json())
+      .then(data => {
+        L.geoJson(data, {
+          style: { color: "black", weight: 1, opacity: 0.8, fillColor: "#b4b4b4", fillOpacity: 0.5}
+        }).addTo(map.value as L.Map);
+      });
   }
   
   function setupMap() {
