@@ -65,7 +65,9 @@
                 <div id="splash-screen-logos">
                   <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
                   ><img alt="Smithsonian Logo" src="220px-Smithsonian_sun_logo_no_text.svg.png"></a>
-                  <credit-logos/>
+                  <credit-logos
+                    :default-logos="['cosmicds', 'sciact', 'nasa']"
+                  />
                 </div>
               </div>
             </v-window-item>
@@ -942,7 +944,9 @@
       <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
       ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
         /></a>
-      <credit-logos/>
+      <credit-logos
+         :default-logos="['cosmicds', 'sciact', 'nasa']"
+       />
     </div>
   </div>
 
