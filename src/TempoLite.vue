@@ -1003,7 +1003,7 @@ import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useBounds } from './composables/useBounds';
-import { interestingEvents } from "./interestingEvents";
+import { interestingEvents } from "./interestingEventsAsList";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
 
