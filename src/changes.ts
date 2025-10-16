@@ -1,8 +1,8 @@
 export default [
   {
-    date: "2025-04-24",
-    html: 'Educational resources designed for for informal educators (e.g., in museums, public outreach) are now available on the Cosmic Data Stories website at <a style="font-weight: normal;" tabindex="0"  href="https://www.cosmicds.cfa.harvard.edu/resources/tempo" target="_blank" rel="noopener">Educator Resources</a>. You can also find the link the menu.',
-    highlight: new Date() < new Date('2025-05-7 00:00:00') ,
+    date: "2025-10-25",
+    html: 'Use the download button to download the currently displayed view as a PNG image.',
+    highlight: new Date() < new Date('2025-10-31 00:00:00') ,
     
   },
   {

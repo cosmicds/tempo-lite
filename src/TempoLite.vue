@@ -210,7 +210,7 @@
 
       <div id="menu-area">
         <v-btn 
-          v-if="(new Date('2025-05-7 00:00:00') > new Date())"
+          v-if="(new Date('2025-10-31 00:00:00') > new Date())"
           class='whats-new-button pulse' 
           aria-label="What's new" 
           @click="showChanges = true" 
@@ -224,6 +224,22 @@
           <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="What's new"></v-tooltip>
           <v-icon>mdi-creation</v-icon>
         </v-btn>
+        <v-tooltip text="Download Map as Image">
+          <template #activator="{ props }">
+            <v-btn
+              v-if="map"
+              class="download-button"
+              v-bind="props"
+              icon="mdi-download-outline"
+              variant="text"
+              @click="downloadMap"
+              rounded="lg" 
+              :color="accentColor2" 
+              elevation="5"
+            ></v-btn>
+          </template>
+        </v-tooltip>
+        
         <share-button
             :source="currentUrl"
             buttonColor="black"
@@ -2128,6 +2144,21 @@ watch(singleDateSelected, (date: Date) => {
   if (!timestampsLoaded.value ) return;
   userSelectedCalendarDates.push(date.getTime());
 });
+
+
+
+
+import { downloadCanvasAsImage2, hideLeafletControls, showLeafletControls } from "./canvas_downloader";
+function downloadMap() {
+  if (!map.value) {
+    alert('Map not ready yet!');
+    return;
+  }
+  const html = document.getElementById('map');
+  hideLeafletControls();
+  downloadCanvasAsImage2(html as HTMLElement, 'tempo-map.png')
+    .finally(() => { showLeafletControls();});
+}
 </script>
   
 <style lang="less">
@@ -3098,7 +3129,8 @@ button:focus-visible,
 
 .menu-button,
 .share-button,
-.whats-new-button {
+.whats-new-button,
+.download-button {
   outline: 2px solid var(--smithsonian-yellow) !important;
   height: 2rem !important;
 }
