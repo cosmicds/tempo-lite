@@ -12,6 +12,7 @@ import SnackbarAlert from "./components/SnackbarAlert.vue";
 import ShareButton from "./components/ShareButton.vue";
 import CDSDialog from "./components/CDSDialog.vue";
 import MarqueeAlert from "./components/MarqueeAlert.vue";
+import DataDownload from "./components/DataDownload.vue";
 
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -83,6 +84,7 @@ createApp(TempoLite, {})
   .component('share-button', ShareButton)
   .component('cds-dialog', CDSDialog)
   .component('marquee-alert', MarqueeAlert)
+  .component('data-download', DataDownload)
 
   // Mount
   .mount("#app");

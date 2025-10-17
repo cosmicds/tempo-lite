@@ -210,7 +210,7 @@
 
       <div id="menu-area">
         <v-btn 
-          v-if="(new Date('2025-05-7 00:00:00') > new Date())"
+          v-if="(new Date('2025-10-31 00:00:00') > new Date())"
           class='whats-new-button pulse' 
           aria-label="What's new" 
           @click="showChanges = true" 
@@ -224,6 +224,32 @@
           <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="What's new"></v-tooltip>
           <v-icon>mdi-creation</v-icon>
         </v-btn>
+        <v-tooltip text="Download Map as Image">
+          <template #activator="{ props }">
+            <v-btn
+              v-if="map"
+              class="download-button"
+              v-bind="props"
+              icon="mdi-download-outline"
+              variant="text"
+              @click="downloadMap"
+              rounded="lg" 
+              :color="accentColor2" 
+              elevation="5"
+            ></v-btn>
+          </template>
+        </v-tooltip>
+        
+        <cds-dialog
+          v-model="showDataDownload"
+          title="Download Map Image and Data Links"
+          >
+          <data-download
+            :timestamp="timestamps[timeIndex]"
+            v-model="showDataDownload"
+          />
+        </cds-dialog>
+        
         <share-button
             :source="currentUrl"
             buttonColor="black"
@@ -2128,6 +2154,13 @@ watch(singleDateSelected, (date: Date) => {
   if (!timestampsLoaded.value ) return;
   userSelectedCalendarDates.push(date.getTime());
 });
+
+
+
+const showDataDownload = ref(false);
+function downloadMap() {
+  showDataDownload.value = true;
+}
 </script>
   
 <style lang="less">
@@ -3098,7 +3131,8 @@ button:focus-visible,
 
 .menu-button,
 .share-button,
-.whats-new-button {
+.whats-new-button,
+.download-button {
   outline: 2px solid var(--smithsonian-yellow) !important;
   height: 2rem !important;
 }
