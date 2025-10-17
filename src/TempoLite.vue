@@ -2015,10 +2015,9 @@ watch(radio, (value: number | null) => {
   }
   const date = datesOfInterest.value[value] ?? singleDateSelected.value;
   singleDateSelected.value = date;
-  setNearestDate(date.getTime());
   if (sublocationRadio.value == 0 && value !== null) {
-    // run this manually as the watcher wouldn't trigger
-    goToLocationOfInterst(value, 0);
+    // nextTick so that singleDateSelected has time to update
+    nextTick(() => goToLocationOfInterst(value, 0));
   } else {
     sublocationRadio.value = 0;
   }
@@ -2027,17 +2026,23 @@ watch(radio, (value: number | null) => {
 watch(singleDateSelected, (value: Date) => {
   // console.log(`singleDateSelected ${value}`);
   const timestamp = value.getTime();
-  setNearestDate(timestamp);
+  // setNearestDate(timestamp);
   if (radio.value !== null) {
-    const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
-    radio.value = index < 0 ? null : index;
+    const indices = datesOfInterest.value
+      .map((d, i) => (d.getTime() === timestamp ? i : -1))
+      .filter(i => i !== -1);
+
+    if (!indices.includes(radio.value)) {
+      radio.value = indices.length > 0 ? indices[0] : null;
+    }
   }
   imagePreload();
 });
 
 watch(sublocationRadio, (value: number | null) => {
   if (value !== null && radio.value != null) {
-    goToLocationOfInterst(radio.value, value);
+    // nextTick so that singleDateSelected has time to update
+    nextTick(() => goToLocationOfInterst(radio.value!, value));
   }
 });
 

@@ -113,7 +113,7 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
 
   watch(singleDateSelected, (value) => {
     setNearestDate(value.getTime());
-  });
+  }, { immediate: true });
 
   return {
     timeIndex,
