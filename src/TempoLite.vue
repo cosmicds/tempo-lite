@@ -240,6 +240,16 @@
           </template>
         </v-tooltip>
         
+        <cds-dialog
+          v-model="showDataDownload"
+          title="Download Map Image and Data Links"
+          >
+          <data-download
+            :timestamp="timestamps[timeIndex]"
+            v-model="showDataDownload"
+          />
+        </cds-dialog>
+        
         <share-button
             :source="currentUrl"
             buttonColor="black"
@@ -2147,17 +2157,9 @@ watch(singleDateSelected, (date: Date) => {
 
 
 
-
-import { downloadCanvasAsImage2, hideLeafletControls, showLeafletControls } from "./canvas_downloader";
+const showDataDownload = ref(false);
 function downloadMap() {
-  if (!map.value) {
-    alert('Map not ready yet!');
-    return;
-  }
-  const html = document.getElementById('map');
-  hideLeafletControls();
-  downloadCanvasAsImage2(html as HTMLElement, 'tempo-map.png')
-    .finally(() => { showLeafletControls();});
+  showDataDownload.value = true;
 }
 </script>
   
