@@ -1,5 +1,13 @@
 export default [
   {
+    date: "2026-06-09",
+    html: `
+    "Notable Dates" have been reorganized into "Featured Topics" to improve clarity and usability. 
+    Each topic (notable events, wildfires, traffic patterns, etc.) then presents one or more example cases.
+    `,
+    highlight: new Date() < new Date('2026-07-09 00:00:00') ,
+  },
+  {
     date: "2025-04-24",
     html: 'Educational resources designed for for informal educators (e.g., in museums, public outreach) are now available on the Cosmic Data Stories website at <a style="font-weight: normal;" tabindex="0"  href="https://www.cosmicds.cfa.harvard.edu/resources/tempo" target="_blank" rel="noopener">Educator Resources</a>. You can also find the link the menu.',
     highlight: new Date() < new Date('2025-05-7 00:00:00') ,

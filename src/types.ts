@@ -28,9 +28,9 @@ export interface LocationOfInterest {
     index?: number;
   }
 export interface InterestingEvent {
-    date: Date;
+    date?: Date;
     endDate?: Date;
-    dateString: string;
+    dateString?: string;
     locations: LocationOfInterest[];
     label?: string;
     info?: string;

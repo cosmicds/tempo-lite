@@ -65,7 +65,9 @@
                 <div id="splash-screen-logos">
                   <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer"
                   ><img alt="Smithsonian Logo" src="220px-Smithsonian_sun_logo_no_text.svg.png"></a>
-                  <credit-logos/>
+                  <credit-logos
+                    :default-logos="['cosmicds', 'sciact', 'nasa']"
+                  />
                 </div>
               </div>
             </v-window-item>
@@ -111,10 +113,10 @@
                     Click <v-icon style="color: #ffcc33">mdi-share-variant</v-icon> to share your selected location, date, and time with others.
                   </li>
                   <li v-bind:style="cssVars">
-                    Press the <v-icon style="font-size: 1.3em; color: var(--accent-color)" elevation="1">mdi-information-variant-circle-outline</v-icon> button next to each Notable Date to get an overview of what to look for on that date
+                    Press the <v-icon style="font-size: 1.3em; color: var(--accent-color)" elevation="1">mdi-information-variant-circle-outline</v-icon> button next to each Featured Topic to get an overview of what you can explore in the TEMPO data.
                   </li>
                   <li>
-                    For each Notable Date, select one of two zoomed-in Locations to investigate specific pollution events.
+                    For each Featured Topic, select Example Cases to investigate specific pollution events.
                   </li>
                   <li>
                     You can use the “Timezone” setting to investigate how pollution evolves over the day in different parts of the country, for example as rush hour progresses in large cities.
@@ -165,10 +167,21 @@
   > 
   <marquee-alert 
     v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" 
-    timeout="30000"
+    :timeout="30000"
     message="You can view data with an extend range for the 
             duration of the LA fires. See the 🔥 button on the map"
     />
+  <!-- add an alert if the last timestamps is more than 2 days behind -->
+  <marquee-alert
+    v-model="dataLagWarning"
+    style="font-size:0.9em; gap: 1em;"
+    icon="mdi-calendar-alert"
+    type="error"
+    :timeout="10000"
+    fixed
+  >
+    {{ new Date(timestamps[timestamps.length-1]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }} is the latest date with available data. See <a href="https://asdc.larc.nasa.gov/project/TEMPO/" target="_blank" rel="noopener noreferrer">NASA's EarthData website</a> and <a href="https://github.com/Smithsonian/TEMPO-Observations-log/blob/main/daily_log.md"  target="_blank" rel="noopener noreferrer">TEMPO Observing Log</a> for more information.
+    </marquee-alert>
     <div class="content-with-sidebars">
       <!-- tempo logo -->
       <div id="logo-title">
@@ -197,7 +210,7 @@
 
       <div id="menu-area">
         <v-btn 
-          v-if="(new Date('2025-05-7 00:00:00') > new Date())"
+          v-if="(new Date('2025-10-25 00:00:00') > new Date())"
           class='whats-new-button pulse' 
           aria-label="What's new" 
           @click="showChanges = true" 
@@ -219,7 +232,7 @@
             size="small"
             rounded="1"
             :tooltip-disabled="mobile"
-            @click="shareButtonClickedCount += 1"
+            @share="shareButtonClickedCount += 1"
             alert
           />
         <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
@@ -534,7 +547,8 @@
         <div id="when" class="big-label">when</div>
         <div id="slider-row">
           <v-slider
-            class="time-slider"
+            :class='["time-slider", maxIndex <= minIndex ? "hide-first-last-ticks" : ""]'
+            :disabled="maxIndex <= minIndex"
             v-model="timeIndex"
             :min="minIndex"
             :max="maxIndex"
@@ -555,16 +569,66 @@
           <icon-button
             id="play-pause"
             :fa-icon="playing ? 'pause' : 'play'"
+            :color="minIndex >= maxIndex ? '#AAAAAA' : 'var(--accent-color)'"
+            :focus-color="minIndex >= maxIndex ? '#AAAAAA' : 'var(--accent-color)'"
+            tooltip-location="bottom"
             fa-size="sm"
-            @activate="playing = !playing"
-          ></icon-button>
+            @activate="() => {
+              if (maxIndex <= minIndex) {
+                handlePlayWithoutData();
+                return;
+              } 
+              playing = !playing
+              }"
+          >
+          </icon-button>
+          <v-snackbar
+            v-model="showSinglePointWarning"
+            :timeout="5000"
+            color="error"
+            location="bottom"
+            >
+            <span style="font-weight: 600">Only one time is available for this date.</span>
+            <template v-slot:actions>
+              <v-btn
+                color="black"
+                variant="text"
+                @click="showSinglePointWarning = false"
+              >
+                <span style="font-weight: 600">Close</span>
+              </v-btn>
+            </template>
+          </v-snackbar>
         </div>
-
-        
 
         <div id="user-options">
         <div id="all-dates">
-          <h2>Select a Date</h2>  
+          <h2>
+          Select a Date
+            <!-- warning about data being out of date -->
+            <v-tooltip
+              v-if="timestampsLoaded && (new Date(timestamps[timestamps.length-2]) < new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))"
+              :disabled="touchscreen"
+              text="Data Availability Alert"
+              location="right"
+              open-on-focus
+              open-on-hover
+            >
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  color="error"
+                  @click="() => dataLagWarning = !dataLagWarning"
+                  @keyup.enter="() => dataLagWarning = !dataLagWarning"
+                  icon="mdi-calendar-alert"
+                  variant="tonal"
+                  size="default"
+                  width="35px"
+                  height="35px"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </h2>  
           <div class="d-flex flex-row align-center">
             <v-radio-group v-model="radio">
               <date-picker
@@ -690,7 +754,7 @@
 
           <div id="date-radio">
             <!-- make a v-radio-group with 3 options -->
-          <h2>Notable Dates</h2>
+          <h2>Featured Topics</h2>
           <v-radio-group
             v-model="radio"
             row
@@ -714,7 +778,7 @@
         <hr style="border-color: grey;"  v-if="radio !== null ">
         
         <div id="locations-of-interest" v-if="radio !== null">
-          <h3 class="mb-1">Featured Events for {{ dateStrings[radio] }}</h3>
+          <h3 class="mb-1">Example Cases</h3>
           <v-radio-group
             v-if="radio !== null"
             v-model="sublocationRadio"
@@ -880,7 +944,9 @@
       <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
       ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
         /></a>
-      <credit-logos/>
+      <credit-logos
+         :default-logos="['cosmicds', 'sciact', 'nasa']"
+       />
     </div>
   </div>
 
@@ -926,12 +992,65 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    
+    <v-container>
+    <v-expand-transition>
+      <user-experience
+        id="rating-root"
+        v-if="showRating"
+        :question="question"
+        icon-size="3x"
+        @dismiss="(_rating: UserExperienceRating | null, _comments: string | null) => {
+          showRating = false;
+        }"
+        @rating="(rating: UserExperienceRating | null) => {
+          currentRating = rating;
+          updateUserExperienceInfo(currentRating, currentComments);
+        }"
+        @finish="(rating: UserExperienceRating | null, comments: string | null) => {
+          currentRating = rating;
+          currentComments = comments;
+          updateUserExperienceInfo(currentRating, currentComments)
+          showRating = false;
+        }"
+      >
+        <template #footer>
+          <div id="user-experience-footer">
+            <v-btn
+              class="rating-opt-put"
+              color="#BDBDBD"
+              size="small"
+              variant="text"
+              @click="() => {
+                showRating = false;
+                ratingOptOut = true;
+              }"
+            >
+            Don't show again
+            </v-btn>
+            <v-btn
+              class="privacy-button"
+              color="#BDBDBD"
+              @click="showRatingPrivacyPolicy = true"
+              @keyup.enter="showRatingPrivacyPolicy = true"
+              size="small"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+            What is this?
+            </v-btn> 
+          </div>
+        </template>
+      </user-experience>
+    </v-expand-transition>
+    <cds-privacy-policy v-model="showRatingPrivacyPolicy" />
+  </v-container>
 </v-app>
 </template>
   
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick, ComputedRef } from "vue";
-import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
+import { API_BASE_URL, blurActiveElement, type UserExperienceRating } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { v4 } from "uuid";
@@ -941,7 +1060,7 @@ import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useBounds } from './composables/useBounds';
-import { interestingEvents } from "./interestingEvents";
+import { interestingEvents } from "./interestingEventsAsList";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
 
@@ -1073,6 +1192,7 @@ let fieldOfRegardToggled = false;
 let cloudMaskToggled = false;
 let hiResDataToggled = false;
 
+
 let userSelectedCalendarDates: number[] = [];
 let userSelectedTimezones: string[] = [];
 let userSelectedLocations: string[] = [];
@@ -1080,17 +1200,71 @@ let userSelectedNotableEvents: [string, string][] = [];
 
 const STORY_DATA_URL = `${API_BASE_URL}/tempo-lite/data`;
 const OPT_OUT_KEY = "tempo-lite-optout" as const;
+const STORY_RATING_URL = `${API_BASE_URL}/tempo-lite/user-experience`;
+const RATING_OPT_OUT_KEY = "tempo-lite-optout" as const;
+
+const storedRatingOptOut = window.localStorage.getItem(RATING_OPT_OUT_KEY);
+
+const showRatingPrivacyPolicy = ref(false);
+const question = Math.random() > 0.5 ? 
+  "Does this spark your curiosity?" :
+  "Are you learning something new?";
+const currentRating = ref<UserExperienceRating | null>(null);
+const currentComments = ref<string | null>(null);
+
 const UUID_KEY = "tempo-lite-uuid" as const;
 const storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
 const maybeUUID = window.localStorage.getItem(UUID_KEY);
 const optOut = typeof storedOptOut === "string" ? storedOptOut === "true" : null;
 const showPrivacyDialog = ref(false);
 const responseOptOut = ref(optOut);
+
+// If the user has opted out of all data collection, don't ask them the question
+const ratingOptedOut = typeof storedRatingOptOut === "string" ? storedRatingOptOut === "true" : null;
+const ratingOptOut = ref(responseOptOut.value || ratingOptedOut);
+let ratingTimeout: ReturnType<typeof setTimeout> | null = null;
+const showRating = ref(false);
+
 const existingUser = maybeUUID !== null;
 const uuid = maybeUUID ?? v4();
 if (!existingUser) {
   window.localStorage.setItem(UUID_KEY, uuid);
 }
+
+
+function updateUserExperienceInfo(rating: UserExperienceRating | null, comments: string | null) {
+  const body: Record<string, unknown> = {
+    uuid,
+    question,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    story_name: "tempo-lite",
+  };
+  if (rating) {
+    body.rating = rating;
+  }
+  if (comments) {
+    body.comments = comments;
+  }
+  fetch(STORY_RATING_URL, {
+    method: "PUT",
+    headers: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+
+
+function clearRatingTimeout() {
+  if (ratingTimeout !== null) {
+    clearTimeout(ratingTimeout);
+    ratingTimeout = null;
+  }
+}
+
 
 function selectSheet(name: SheetType) {
   if (sheet.value === name) {
@@ -1296,6 +1470,7 @@ const showLocationMarker = ref(true);
 const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
 const showLADialog = ref(false);
+const dataLagWarning = ref(false);
 
 
 const imageName = computed(() => {
@@ -1443,10 +1618,6 @@ const datesOfInterest = computed(() => {
   return interestingEvents.map(event => event.date);
 });
 
-const dateStrings = computed(() => {
-  return interestingEvents.map(event => event.dateString);
-});
-
 const locationsOfInterest = computed(() => {
   return interestingEvents.map(event =>
     event.locations.map(loc => ({
@@ -1588,6 +1759,13 @@ function pause() {
   }
 }
 
+const showSinglePointWarning = ref(false);
+function handlePlayWithoutData() {
+  console.log('No data available for the selected time. Please select a different time.');
+  playing.value = false;
+  pause();
+  showSinglePointWarning.value = true;
+}
 
 function getCloudFilename(date: Date): string {
   const filename = getTempoFilename(date);
@@ -1659,6 +1837,10 @@ function imagePreload() {
   });
 }
 
+function within1Day(date1: Date, date2: Date): boolean {
+  const diff = Math.abs(date1.getTime() - date2.getTime());
+  return diff <= (24 * 60 * 60 * 1000);
+}
 
 function goToLocationOfInterst(index: number, subindex: number) {
   if (index < 0 || index >= locationsOfInterest.value.length) {
@@ -1666,12 +1848,24 @@ function goToLocationOfInterst(index: number, subindex: number) {
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
-  setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
-  if (loi.index !== undefined) {
-    timeIndex.value = loi.index;
-  } else {
-    console.warn('No index found for location of interest');
+  const loiDay = new Date(loi.time);
+  console.log(`Single date selected: ${singleDateSelected.value}, LOI day: ${loiDay}`);
+  
+  if (!within1Day(singleDateSelected.value, loiDay)) {
+    singleDateSelected.value = uniqueDays.value[uniqueDaysIndex(loiDay.getTime())];
   }
+  // need to wait for singleDateSelected to update before setting timeIndex
+  nextTick(() => {
+    // set time index to loi index
+    if (loi.index !== undefined) {
+      console.log(`Setting time index to ${loi.index} for LOI at ${loi.day}`);
+      timeIndex.value = loi.index;
+    } else {
+      console.warn('No index found for location of interest');
+    }
+    setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
+  });
+
 }
 
 
@@ -1723,23 +1917,50 @@ async function createUserEntry() {
     headers: { "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "" }
   });
   const content = await response.json();
-  const exists = response.status === 200 && content.response?.user_uuid != undefined;
-  if (exists) {
+  const userExists = response.status === 200 && content.response?.user_uuid != undefined;
+  
+  if (!userExists) {
+    fetch(`${STORY_DATA_URL}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+      },
+      body: JSON.stringify({
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        user_uuid: uuid,
+      }),
+    });
+  }
+  
+  if (ratingOptOut.value) {
     return;
   }
+  
+  // let gaveRating = false;
+  // if (userExists) {
+  //   try {
+  //     const ratingResponse = await fetch(`${STORY_RATING_URL}/${uuid}`, {
+  //       method: "GET",
+  //       // eslint-disable-next-line @typescript-eslint/naming-convention
+  //       headers: { "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "" }
+  //     });
 
-  fetch(`${STORY_DATA_URL}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
-    },
-    body: JSON.stringify({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      user_uuid: uuid,
-    }),
-  });
+  //     const ratingContent = await ratingResponse.json();
+  //     gaveRating = ratingResponse.status === 200 && ratingContent.ratings?.length > 0;
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+  // }
+  //
+  // if (!gaveRating) {
+  //   ratingTimeout = setTimeout(() => {
+  //     showRating.value = true; 
+  //   }, 60_000);
+  // }
+  
+  
 }
 
 function resetData() {
@@ -1891,8 +2112,21 @@ watch(showPrivacyDialog, (show: boolean) => {
 });
 
 watch(responseOptOut, (optOut: boolean | null) => {
-  if (responseOptOut.value !== null) {
+  if (optOut !== null) {
     window.localStorage.setItem(OPT_OUT_KEY, String(optOut));
+    if (optOut) {
+      clearRatingTimeout();
+      showRating.value = false;
+    }
+  }
+});
+
+watch(ratingOptOut, (optOut: boolean | null) => {
+  if (optOut !== null) {
+    window.localStorage.setItem(RATING_OPT_OUT_KEY, String(optOut));
+    if (optOut) {
+      clearRatingTimeout();
+    }
   }
 });
 
@@ -1957,36 +2191,53 @@ watch(timestamps, () => {
 });
 
 watch(radio, (value: number | null) => {
+  // reset the sublocation radio
+  sublocationRadio.value = null;
+  
   if (value == null) {
     setNearestDate(singleDateSelected.value.getTime());
-    sublocationRadio.value = null;
     return;
   }
-  const date = datesOfInterest.value[value] ?? singleDateSelected.value;
-  singleDateSelected.value = date;
-  setNearestDate(date.getTime());
-  if (sublocationRadio.value == 0 && value !== null) {
-    // run this manually as the watcher wouldn't trigger
-    goToLocationOfInterst(value, 0);
-  } else {
-    sublocationRadio.value = 0;
+  
+  // is there a date for this event? then go to that date
+  const date = datesOfInterest.value[value];
+  if (date) {
+    singleDateSelected.value = date;
   }
+  // then go to the first location of interest for this event
+  // nextTick(() => {
+  //   sublocationRadio.value = 0;
+  // });
 });
 
 watch(singleDateSelected, (value: Date) => {
-  // console.log(`singleDateSelected ${value}`);
   const timestamp = value.getTime();
-  setNearestDate(timestamp);
   if (radio.value !== null) {
-    const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
-    radio.value = index < 0 ? null : index;
+    const indices = datesOfInterest.value
+      .map((d, i) => (d?.getTime() === timestamp ? i : -1))
+      .filter(i => i !== -1);
+    
+    const sublocationIndices = locationsOfInterest.value[radio.value]
+      .filter(loc => {
+        const locTime = new Date(loc.time);
+        return within1Day(locTime, value);
+      });
+    
+
+    if (!indices.includes(radio.value) && sublocationIndices.length === 0) {
+      const newRadioValue = indices.length > 0 ? indices[0] : null;
+      if (newRadioValue !== radio.value) {
+        radio.value = newRadioValue;
+      }
+    }
   }
   imagePreload();
 });
 
 watch(sublocationRadio, (value: number | null) => {
   if (value !== null && radio.value != null) {
-    goToLocationOfInterst(radio.value, value);
+    // nextTick so that singleDateSelected has time to update
+    nextTick(() => goToLocationOfInterst(radio.value!, value));
   }
 });
 
@@ -2639,8 +2890,6 @@ a {
     padding-inline: 0.5rem;
     margin-left: 0.75rem;
     width: 2.5rem;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
   }
 
   #play-pause-button[disabled] {
@@ -2706,6 +2955,17 @@ a {
       border-top: 6px solid currentColor;
       bottom: -15px;
     }
+  }
+}
+
+.time-slider.hide-first-last-ticks.v-input--disabled {
+    .v-slider__container {
+      opacity: 100 !important;
+    }
+    
+    .v-slider-track__tick--first,
+    .v-slider-track__tick--last {
+      display: none;
   }
 }
 
@@ -3102,5 +3362,57 @@ div.callout-wrapper {
 canvas.maplibregl-canvas {
   background-color: whitesmoke;
 }
+
+#rating-root.rating-root {
+  position: absolute !important;
+  right: 5px;
+  bottom: 0;
+  padding: 5px;
+  width: fit-content !important;
+  // left: 50%;
+  // transform: translateX(-50%);
+  gap: 0 !important;
+  border: solid 1px #EFEFEF !important;
+  border-radius: 10px !important;
+  background-color: #222222 !important;
+  opacity: 0.95 !important;
+  z-index: 20000;
+
+  .rating-title {
+    color: #EFEFEF;
+    font-size: var(--default-font-size);
+  }
+
+  .rating-icon-row {
+    
+    padding: 0px;
+
+    .svg-inline--fa {
+      height: 30px;
+    }
+  }
+
+  .comments-box {
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .v-card-text {
+    padding-bottom: 0;
+  }
+
+  .v-card-actions {
+    padding: 0;
+  }
+
+  #user-experience-footer {
+    margin: auto;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+  }
+
+}
+
 </style>
   

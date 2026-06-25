@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import Vue, { createApp } from "vue";
 
-import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
+import { FundingAcknowledgement, IconButton, CreditLogos, UserExperience } from "@cosmicds/vue-toolkit";
 import LocationSearch from "./components/LocationSearch.vue";
 import TempoLite from "./TempoLite.vue";
 import Colorbar from './components/ColorBar.vue';
@@ -11,7 +11,8 @@ import vuetify from "../plugins/vuetify";
 import SnackbarAlert from "./components/SnackbarAlert.vue";
 import ShareButton from "./components/ShareButton.vue";
 import CDSDialog from "./components/CDSDialog.vue";
-import MarqeeAlert from "./components/MarqeeAlert.vue";
+import MarqueeAlert from "./components/MarqueeAlert.vue";
+import CDSPrivacyPolicy from "./CDSPrivacyPolicy.vue";
 
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -82,7 +83,9 @@ createApp(TempoLite, {})
   .component('snackbar-alert', SnackbarAlert)
   .component('share-button', ShareButton)
   .component('cds-dialog', CDSDialog)
-  .component('marquee-alert', MarqeeAlert)
+  .component('marquee-alert', MarqueeAlert)
+  .component('user-experience', UserExperience)
+  .component('cds-privacy-policy', CDSPrivacyPolicy)
 
   // Mount
   .mount("#app");
