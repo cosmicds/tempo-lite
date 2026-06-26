@@ -1,5 +1,11 @@
 export default [
   {
+    date: "2026-06-26",
+    html: 'Use the download button to download the currently displayed map view as a PNG image.',
+    highlight: new Date() < new Date('2026-07-26 00:00:00') ,
+  },
+  {
+    
     date: "2026-06-25",
     html: `
     TEMPO data for the most recent date is sometimes only available for part of the day. The time slider styling has been updated to reflect this.

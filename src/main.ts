@@ -12,6 +12,7 @@ import SnackbarAlert from "./components/SnackbarAlert.vue";
 import ShareButton from "./components/ShareButton.vue";
 import CDSDialog from "./components/CDSDialog.vue";
 import MarqueeAlert from "./components/MarqueeAlert.vue";
+import DataDownload from "./components/DataDownload.vue";
 import CDSPrivacyPolicy from "./CDSPrivacyPolicy.vue";
 
 
@@ -70,7 +71,7 @@ createApp(TempoLite, {})
     })
 
   // Components
-  .component('font-awesome-icon', FontAwesomeIcon)
+  .component('font-awesome-icon', FontAwesomeIcon as never)
   .component('icon-button', IconButton)
   .component('funding-acknowledgement', FundingAcknowledgement)
   .component('credit-logos', CreditLogos)
@@ -84,6 +85,7 @@ createApp(TempoLite, {})
   .component('share-button', ShareButton)
   .component('cds-dialog', CDSDialog)
   .component('marquee-alert', MarqueeAlert)
+  .component('data-download', DataDownload)
   .component('user-experience', UserExperience)
   .component('cds-privacy-policy', CDSPrivacyPolicy)
 

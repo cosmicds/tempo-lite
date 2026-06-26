@@ -149,7 +149,7 @@ export function useMap(id="map", options: InitMapOptions, showRoads: Ref<boolean
   }
   
   function createMap(): Ref<L.Map> {
-    map.value = L.map(id, { zoomControl: false });
+    map.value = L.map(id, { zoomControl: false, preferCanvas: true });
     map.value.setView(options.loc as L.LatLngTuple, options.zoom);
     
     map.value.whenReady(setupMap);

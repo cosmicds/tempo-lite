@@ -8,24 +8,25 @@
       <slot name="activator" v-bind="props"></slot>
     </template>
      
-    <v-card class="cds-dialog-card">
-      <font-awesome-icon 
-        class="cds-dialog-close-icon cds-touch-pad"
-        icon="square-xmark" 
-        size="xl" 
-        @click="showDialog = false" 
-        @keyup.enter="showDialog = false"
-        :color="color" 
-        tabindex="0"
-        ></font-awesome-icon>
+    <v-card class="cds-dialog-card pa-2">
+      
         
-      <v-card-title tabindex="0">
+      <div class="cds-dialog-title">
         <h3> 
           {{title}} 
         </h3>
-      </v-card-title>
+          <font-awesome-icon 
+            class="cds-dialog-close-icon cds-touch-pad"
+            icon="square-xmark" 
+            size="xl" 
+            @click="showDialog = false" 
+            @keyup.enter="showDialog = false"
+            :color="color" 
+            tabindex="0"
+            ></font-awesome-icon>
+      </div>
       
-      <v-card-text>
+      <v-card-text class="pa-0">
         
         <slot>
           Add content to the default slot
@@ -102,15 +103,26 @@ export default defineComponent({
   display: flex;
   width: calc(100% - 1rem);
 }
-.cds-dialog-card {
-  align-self: center;
-  max-width: 80%;
+
+.cds-dialog h3 {
+  font-size: clamp(1.3rem, 2vw, 2rem);  
+  display: inline;
+  padding-left: 0.5rem;
 }
 
+.cds-dialog-card {
+  align-self: center;
+  max-width: 90%;
+  border: #555 solid 1px;
+}
+
+.cds-dialog-title {
+  margin: 4px;
+}
 .cds-dialog-close-icon {
-  position: absolute;
-  right: 16px;
-  cursor: pointer;
+  float: right;
+  margin-inline: 0.5em;
+  margin-top: 0.25em;
 }
 
 /* pad the touch area by 0.5em */
